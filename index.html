@@ -1,0 +1,3008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AquaPocket ’99 — Tactile Hardware Study 01</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #12110F;
+      --ink-soft: rgba(18, 17, 15, 0.72);
+      --card-bg: rgba(232, 226, 214, 0.66);
+      --card-border: rgba(255, 255, 255, 0.56);
+      --card-outline: rgba(24, 20, 14, 0.07);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #EDE4D5;
+      color: var(--ink);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #canvas-wrap {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+
+    /* Editorial Top-Left Title (Exact Reference Match) */
+    .title-block {
+      position: fixed;
+      top: 52px;
+      left: 56px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .title-block h1 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(52px, 5.7vw, 82px);
+      line-height: 0.94;
+      letter-spacing: -0.02em;
+      color: #0B0B09;
+      margin-bottom: 16px;
+    }
+
+    .eyebrow {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(18, 17, 15, 0.88);
+    }
+
+    /* Subtle Top-Right Utility Pills */
+    .top-bar {
+      position: fixed;
+      top: 28px;
+      right: 48px;
+      z-index: 12;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .top-pill {
+      appearance: none;
+      border: 1px solid rgba(20, 18, 14, 0.09);
+      background: rgba(244, 238, 228, 0.52);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-soft);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.16s ease;
+    }
+
+    .top-pill:hover {
+      background: rgba(255, 255, 255, 0.85);
+      color: var(--ink);
+    }
+
+    /* Floating Frosted Studio Card (Faithful Reference Proportions) */
+    .studio-card {
+      position: fixed;
+      top: 48.5%;
+      right: 54px;
+      transform: translateY(-50%);
+      z-index: 12;
+      width: 248px;
+      padding: 25px 23px 23px;
+      border-radius: 16px;
+      background: var(--card-bg);
+      backdrop-filter: blur(28px) saturate(1.12);
+      -webkit-backdrop-filter: blur(28px) saturate(1.12);
+      border: 1px solid var(--card-border);
+      box-shadow:
+        0 0 0 1px var(--card-outline),
+        0 26px 56px rgba(38, 30, 18, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.62);
+      display: flex;
+      flex-direction: column;
+      gap: 21px;
+    }
+
+    .swatch-list {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .swatch-item {
+      appearance: none;
+      border: none;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 3px 6px;
+      margin: 0 -6px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 450;
+      color: rgba(18, 17, 15, 0.80);
+      text-align: left;
+      transition: color 0.15s ease, transform 0.15s ease;
+    }
+
+    .swatch-item:hover {
+      color: #000;
+      transform: translateX(1px);
+    }
+
+    .swatch-item.active {
+      color: #0B0B09;
+      font-weight: 500;
+    }
+
+    .swatch-dot {
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .swatch-item.active .swatch-dot {
+      transform: scale(1.06);
+      box-shadow: 0 0 0 2px rgba(242, 237, 228, 0.92), 0 0 0 3.2px rgba(18, 17, 15, 0.34);
+    }
+
+    .sliders-group {
+      display: flex;
+      flex-direction: column;
+      gap: 19px;
+    }
+
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .slider-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 13px;
+      font-weight: 450;
+      color: #12110F;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 2.5px;
+      border-radius: 999px;
+      background: rgba(18, 17, 15, 0.20);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #10100E;
+      border: none;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.30);
+      transition: transform 0.12s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.18);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #10100E;
+      border: none;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.30);
+    }
+
+    .score-block {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding-top: 2px;
+    }
+
+    .score-label {
+      font-size: 13px;
+      font-weight: 450;
+      color: #12110F;
+    }
+
+    .score-number {
+      font-family: 'Inter', sans-serif;
+      font-variant-numeric: tabular-nums;
+      font-size: 21px;
+      font-weight: 450;
+      letter-spacing: -0.02em;
+      color: #10100E;
+      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .score-number.pop {
+      transform: scale(1.24);
+    }
+
+    /* Sleek Single-Line Quick Actions Beneath Card */
+    .card-actions {
+      position: fixed;
+      top: calc(48.5% + 178px);
+      right: 54px;
+      width: 248px;
+      z-index: 12;
+      display: flex;
+      justify-content: space-between;
+      gap: 5px;
+    }
+
+    .mini-btn {
+      flex: 1;
+      appearance: none;
+      border: 1px solid rgba(20, 18, 14, 0.09);
+      background: rgba(238, 232, 220, 0.55);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 999px;
+      padding: 5px 0;
+      font-family: inherit;
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--ink-soft);
+      cursor: pointer;
+      white-space: nowrap;
+      text-align: center;
+      transition: all 0.14s ease;
+    }
+
+    .mini-btn:hover,
+    .mini-btn.pressed {
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--ink);
+    }
+
+    .how-to-play {
+      position: fixed;
+      bottom: 22px;
+      left: 56px;
+      z-index: 10;
+      pointer-events: none;
+      font-size: 11px;
+      color: rgba(24, 21, 16, 0.48);
+      letter-spacing: 0.01em;
+    }
+
+    .how-to-play strong {
+      font-weight: 600;
+      color: rgba(24, 21, 16, 0.72);
+    }
+
+    .win-banner {
+      position: fixed;
+      top: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-16px);
+      z-index: 20;
+      padding: 8px 18px;
+      border-radius: 999px;
+      background: rgba(255, 252, 246, 0.92);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(20, 19, 17, 0.10);
+      box-shadow: 0 12px 32px rgba(20, 19, 17, 0.12);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .win-banner.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 820px) {
+      .title-block { top: 20px; left: 22px; }
+      .title-block h1 { font-size: 42px; margin-bottom: 8px; }
+      .studio-card {
+        top: auto;
+        bottom: 50px;
+        right: 16px;
+        transform: none;
+        width: 214px;
+        padding: 16px;
+        gap: 14px;
+      }
+      .card-actions {
+        top: auto;
+        bottom: 14px;
+        right: 16px;
+        width: 214px;
+      }
+      .how-to-play { display: none; }
+    }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="canvas-wrap"></div>
+
+  <header class="title-block">
+    <h1>AquaPocket ’99.</h1>
+    <div class="eyebrow">TACTILE HARDWARE STUDY 01</div>
+  </header>
+
+  <div class="top-bar">
+    <button class="top-pill" id="btn-pose" type="button">Pose: Studio</button>
+    <button class="top-pill" id="btn-sound" type="button">Sound: On</button>
+  </div>
+
+  <div class="win-banner" id="win-banner">All rings hooked! Press Shake or Reset for another round.</div>
+
+  <aside class="studio-card" aria-label="AquaPocket controls">
+    <div class="swatch-list" role="radiogroup" aria-label="Shell colorway">
+      <button class="swatch-item active" data-shell="glacier" type="button">
+        <span class="swatch-dot" style="background: #9CCFE0;"></span>
+        <span>Glacier</span>
+      </button>
+      <button class="swatch-item" data-shell="atomic" type="button">
+        <span class="swatch-dot" style="background: #8B6BF0;"></span>
+        <span>Atomic Purple</span>
+      </button>
+      <button class="swatch-item" data-shell="smoke" type="button">
+        <span class="swatch-dot" style="background: #8E9296;"></span>
+        <span>Smoke</span>
+      </button>
+      <button class="swatch-item" data-shell="coral" type="button">
+        <span class="swatch-dot" style="background: #F46E5A;"></span>
+        <span>Coral</span>
+      </button>
+    </div>
+
+    <div class="sliders-group">
+      <div class="slider-row">
+        <div class="slider-head">
+          <span>Jet Force</span>
+        </div>
+        <input type="range" id="sl-jet" min="0.45" max="1.85" step="0.01" value="1.20" />
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-head">
+          <span>Buoyancy</span>
+        </div>
+        <input type="range" id="sl-buoyancy" min="0.55" max="0.98" step="0.01" value="0.86" />
+      </div>
+    </div>
+
+    <div class="score-block">
+      <span class="score-label">Ring score</span>
+      <span class="score-number" id="score-val">30</span>
+    </div>
+  </aside>
+
+  <div class="card-actions">
+    <button class="mini-btn" id="ui-pump-left" type="button" title="Hold A or Left Arrow">L Jet · A</button>
+    <button class="mini-btn" id="ui-pump-right" type="button" title="Hold D or Right Arrow">R Jet · D</button>
+    <button class="mini-btn" id="btn-shake" type="button">Shake</button>
+    <button class="mini-btn" id="btn-reset" type="button">Reset</button>
+  </div>
+
+  <div class="how-to-play">
+    <strong>Play</strong> — Press the 3D silicone buttons (or hold <strong>A</strong> / <strong>D</strong>) to pump bubbles · Drag shell to tilt &amp; slosh · Drag background to orbit
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+    // =========================================================================
+    // 1. Procedural Web Audio Synthesizer
+    // =========================================================================
+    class AquaAudio {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.lastBubbleSound = 0;
+        this.lastClackSound = 0;
+      }
+
+      unlock() {
+        if (!this.enabled) return;
+        if (!this.ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) this.ctx = new AC();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+      }
+
+      playPumpPress(isDown = true) {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(isDown ? 148 : 106, now);
+        osc.frequency.exponentialRampToValueAtTime(isDown ? 66 : 164, now + 0.085);
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(320, now);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(isDown ? 0.13 : 0.06, now + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.095);
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      }
+
+      playBubbleGrain(intensity = 1.0) {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        if (now - this.lastBubbleSound < 0.038) return;
+        this.lastBubbleSound = now;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        const baseFreq = 490 + Math.random() * 680;
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.052);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(Math.min(0.05, 0.02 * intensity), now + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.056);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.06);
+      }
+
+      playPlasticTap(speed = 1.0) {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        if (now - this.lastClackSound < 0.048) return;
+        this.lastClackSound = now;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        const freq = 1120 + Math.random() * 420;
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.65, now + 0.026);
+        gain.gain.setValueAtTime(Math.min(0.045, 0.011 * speed), now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.028);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.03);
+      }
+
+      playRingHooked(hookedCount = 1) {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const scale = [523.25, 659.25, 783.99, 987.77, 1174.66];
+        const freq = scale[Math.min(scale.length - 1, Math.max(0, hookedCount - 1))];
+        const notes = hookedCount >= 5 ? [freq * 0.75, freq, freq * 1.25, freq * 1.5] : [freq, freq * 1.5];
+        notes.forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          const t0 = now + idx * 0.055;
+          osc.frequency.setValueAtTime(f, t0);
+          gain.gain.setValueAtTime(0.0001, t0);
+          gain.gain.linearRampToValueAtTime(0.07, t0 + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.32);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t0);
+          osc.stop(t0 + 0.34);
+        });
+      }
+    }
+
+    const audio = new AquaAudio();
+
+    // =========================================================================
+    // 2. Physically Calibrated Beer-Lambert Optical Palettes & Dimensions
+    //    Note: `new THREE.Color('#hex')` in Three.js r165 automatically converts
+    //    sRGB hex -> Linear color space!
+    // =========================================================================
+    const SHELL_THEMES = {
+      glacier: {
+        // Beer-Lambert RGB absorption coefficients (absorbs warm R/G faster than cool cyan-blue!)
+        sigma: new THREE.Vector3(0.50, 0.19, 0.105),
+        deepEdge: new THREE.Color('#214D5E'),     // Deep cerulean/petrol TIR edge striation
+        darkGroove: new THREE.Color('#163440'),   // Inner clamshell TIR seam line
+        iceRim: new THREE.Color('#CBEBF7'),       // Bright internal bevel reflection
+        ribCol: new THREE.Color('#538CA3'),       // Molded internal ribs & bosses
+        causticTint: new THREE.Color('#7CC4DE'),  // Transmitted floor light tint
+        siliconeLit: new THREE.Color('#CAD4D7'),  // Frosted cool-grey silicone lit face
+        siliconeShade: new THREE.Color('#8D9BA1') // Frosted cool-grey silicone shaded rim
+      },
+      atomic: {
+        sigma: new THREE.Vector3(0.36, 0.54, 0.10),
+        deepEdge: new THREE.Color('#3D1E8C'),
+        darkGroove: new THREE.Color('#25105C'),
+        iceRim: new THREE.Color('#DECFFA'),
+        ribCol: new THREE.Color('#6D4EC2'),
+        causticTint: new THREE.Color('#9B7BF2'),
+        siliconeLit: new THREE.Color('#D4D0DE'),
+        siliconeShade: new THREE.Color('#938CA6')
+      },
+      smoke: {
+        sigma: new THREE.Vector3(0.38, 0.35, 0.32),
+        deepEdge: new THREE.Color('#2B3238'),
+        darkGroove: new THREE.Color('#1A1F24'),
+        iceRim: new THREE.Color('#DCE2E8'),
+        ribCol: new THREE.Color('#5A626A'),
+        causticTint: new THREE.Color('#9DA7B0'),
+        siliconeLit: new THREE.Color('#CFD4D7'),
+        siliconeShade: new THREE.Color('#90979C')
+      },
+      coral: {
+        sigma: new THREE.Vector3(0.08, 0.48, 0.56),
+        deepEdge: new THREE.Color('#9E261B'),
+        darkGroove: new THREE.Color('#68160E'),
+        iceRim: new THREE.Color('#FFD2C8'),
+        ribCol: new THREE.Color('#D25344'),
+        causticTint: new THREE.Color('#F57F6E'),
+        siliconeLit: new THREE.Color('#DDD2CF'),
+        siliconeShade: new THREE.Color('#A3908B')
+      }
+    };
+
+    // Calibrated hardware silhouette proportions matching the reference product study
+    const BODY_W = 4.78;
+    const BODY_H = 6.52;
+    const BODY_D = 1.28;
+    const BODY_R = 0.66;
+
+    const TANK_CENTER_Y = 0.42;
+    const TANK_W = 3.54;
+    const TANK_H = 3.76;
+    const TANK_D = 0.88;
+    const TANK_R = 0.26;
+
+    const HALF_TW = TANK_W * 0.5;
+    const HALF_TH = TANK_H * 0.5;
+    const HALF_TD = TANK_D * 0.5;
+
+    // Water rests around 70% up the tank
+    const WATER_REST_LOCAL_Y = HALF_TH * 0.42;
+
+    // Slender borosilicate glass pegs
+    const PEG_X = 0.82;
+    const PEG_BASE_Y = -HALF_TH + 0.06;
+    const PEG_TIP_Y = 0.16;
+    const PEG_RADIUS = 0.056;
+
+    // 5 Jewel-toned candy O-rings (exact airy editorial composition matching reference!)
+    const RING_COUNT = 5;
+    const RING_MAJOR = 0.285;
+    const RING_TUBE = 0.088;
+    const RING_OUTER = RING_MAJOR + RING_TUBE;
+
+    const RING_PALETTE = [
+      { base: '#F55B56', core: '#FF9D92', deep: '#982220' }, // Coral Red (Upper-Left)
+      { base: '#ECA928', core: '#FFE17D', deep: '#8F5606' }, // Marigold Yellow (Lower-Left)
+      { base: '#79E638', core: '#CAFF94', deep: '#2B780A' }, // Electric Lime (Center-Right)
+      { base: '#F65952', core: '#FF9B8E', deep: '#99201C' }, // Warm Coral (Mid-Right)
+      { base: '#D6892C', core: '#FFC775', deep: '#7A4207' }  // Butterscotch Amber (Lower-Right)
+    ];
+
+    const state = {
+      shellKey: 'glacier',
+      jetForce: 1.20,
+      buoyancy: 0.86,
+      studioPose: true,
+      pumpLeft: false,
+      pumpRight: false,
+      pumpLeftPos: 0,
+      pumpRightPos: 0,
+      userTiltX: 0,
+      userTiltZ: 0,
+      // Exact 3/4 tilted studio pose showing the thick 3D right polycarbonate wall!
+      tiltX: -0.10,
+      tiltY: -0.34,
+      tiltZ: -0.34,
+      velTiltX: 0,
+      velTiltY: 0,
+      velTiltZ: 0,
+      sloshX: 0.35,
+      sloshZ: -0.09,
+      sloshVelX: 0,
+      sloshVelZ: 0,
+      rippleAmp: 0.022,
+      score: 30,
+      hookedCount: 0,
+      allWinShown: false,
+      time: 0
+    };
+
+    // =========================================================================
+    // 3. Renderer, Multi-Stage Refraction FBOs & Khronos PBR Neutral Post-Grade
+    // =========================================================================
+    const wrap = document.getElementById('canvas-wrap');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.setPixelRatio(dpr);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    // Important: We handle Khronos PBR Neutral tone mapping + exact sRGB OETF in `StudioGradePass`
+    // so linear Offscreen FBOs (`backdropRT`, `tankSceneRT`) and main render share 100% identical linear math!
+    renderer.toneMapping = THREE.NoToneMapping;
+    renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+    renderer.setClearColor(new THREE.Color('#E8DEC9'), 1.0);
+    wrap.appendChild(renderer.domElement);
+
+    const rtParams = {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      type: THREE.HalfFloatType,
+      samples: 4
+    };
+
+    // Stage 1 FBO: Pure sunlit studio cyclorama + internal shell ribs/bosses/valve (refracted by outer polycarbonate shell — NO ring ghosting!)
+    const housingRT = new THREE.WebGLRenderTarget(
+      Math.floor(window.innerWidth * dpr),
+      Math.floor(window.innerHeight * dpr),
+      rtParams
+    );
+
+    // Stage 1B FBO: Pure studio backdrop for upper tank acrylic standoffs
+    const backdropRT = new THREE.WebGLRenderTarget(
+      Math.floor(window.innerWidth * dpr),
+      Math.floor(window.innerHeight * dpr),
+      rtParams
+    );
+
+    // Stage 2 FBO: Studio backdrop + rear tank soft shadows + standoffs + rings + pegs + bubbles (refracted by water, meniscus & tank bezel!)
+    const tankSceneRT = new THREE.WebGLRenderTarget(
+      Math.floor(window.innerWidth * dpr),
+      Math.floor(window.innerHeight * dpr),
+      rtParams
+    );
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(23.5, window.innerWidth / window.innerHeight, 0.25, 110);
+    const INITIAL_CAM = new THREE.Vector3(-0.22, 0.28, 24.8);
+    const INITIAL_TARGET = new THREE.Vector3(0.08, -0.18, 0);
+    camera.position.copy(INITIAL_CAM);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.copy(INITIAL_TARGET);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.065;
+    controls.enablePan = false;
+    controls.minDistance = 13.0;
+    controls.maxDistance = 34.0;
+    controls.minPolarAngle = 0.48;
+    controls.maxPolarAngle = 1.62;
+    controls.update();
+
+    // Post-Processing: RenderPass -> Subtle HDR Specular Bloom -> Khronos PBR Neutral + sRGB Output!
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.14,  // Crisp optical bloom on HDR specular pinpoints & caustic cusps only
+      0.35,
+      1.02   // Strict >1.02 linear threshold so studio paper never hazes!
+    );
+    composer.addPass(bloomPass);
+
+    // Khronos PBR Neutral Tone Mapper + Exact IEC sRGB OETF + Film Grain
+    const StudioGradeShader = {
+      uniforms: {
+        tDiffuse: { value: null }
+      },
+      vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D tDiffuse;
+        varying vec2 vUv;
+
+        // Official Khronos PBR Neutral Tone Mapping:
+        // Preserves 1:1 exact base colors & saturation up to 0.8 linear (no grey washout!),
+        // while smoothly rolling off >1.0 HDR caustics and glass specular highlights!
+        vec3 pbrNeutralToneMapping(vec3 color) {
+          const float startCompression = 0.8 - 0.04;
+          const float desaturation = 0.15;
+
+          float x = min(color.r, min(color.g, color.b));
+          float offset = x < 0.08 ? x - 6.25 * x * x : 0.04;
+          color -= offset;
+
+          float peak = max(color.r, max(color.g, color.b));
+          if (peak < startCompression) return color;
+
+          const float d = 1.0 - startCompression;
+          float newPeak = 1.0 - d * d / (peak + d - startCompression);
+          color *= newPeak / peak;
+
+          float g = 1.0 - 1.0 / (desaturation * (peak - newPeak) + 1.0);
+          return mix(color, vec3(newPeak), g);
+        }
+
+        vec3 linearToSRGB(vec3 c) {
+          c = max(c, vec3(0.0));
+          vec3 lo = c * 12.92;
+          vec3 hi = 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055;
+          return mix(lo, hi, step(vec3(0.0031308), c));
+        }
+
+        void main() {
+          vec3 lin = texture2D(tDiffuse, vUv).rgb;
+          vec3 mapped = pbrNeutralToneMapping(max(lin, vec3(0.0)));
+          vec3 srgb = linearToSRGB(mapped);
+
+          // Micro photographic grain to eliminate 8-bit banding on warm paper gradients
+          float grain = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+          srgb += (grain - 0.5) * 0.007;
+
+          gl_FragColor = vec4(clamp(srgb, 0.0, 1.0), 1.0);
+        }
+      `
+    };
+    composer.addPass(new ShaderPass(StudioGradeShader));
+
+    const globalRes = new THREE.Vector2(window.innerWidth * dpr, window.innerHeight * dpr);
+
+    // Common GLSL sRGB-to-Linear helper snippet for shaders using calibrated hex/sRGB values
+    const GLSL_SRGB_HELPER = /* glsl */ `
+      vec3 srgb(float r, float g, float b) {
+        vec3 c = vec3(r, g, b);
+        return pow(max(c, vec3(0.0)), vec3(2.2));
+      }
+      vec3 srgbVec(vec3 c) {
+        return pow(max(c, vec3(0.0)), vec3(2.2));
+      }
+    `;
+
+    // =========================================================================
+    // 4. Sunlit Studio Cyclorama + Architectural Gobo + Cast Shadow + Sharp Caustics!
+    // =========================================================================
+    const FLOOR_Y = -3.48;
+
+    const studioUniforms = {
+      uTime: { value: 0 },
+      uCausticTint: { value: SHELL_THEMES.glacier.causticTint.clone() },
+      uTilt: { value: new THREE.Vector2(-0.10, -0.34) },
+      uRipple: { value: 0.022 },
+      uDevicePos: { value: new THREE.Vector3(-0.08, 0.18, 0) }
+    };
+
+    function createCycloramaGeometry() {
+      const geo = new THREE.PlaneGeometry(220, 76, 48, 76);
+      const pos = geo.attributes.position;
+      const wallZ = -6.8;
+      const curveR = 3.2;
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i);
+        const s = (pos.getY(i) + 38) / 76;
+        const dist = s * 46.0;
+        const flatLen = 22.5;
+        const arcLen = Math.PI * 0.5 * curveR;
+
+        let wy, wz;
+        if (dist <= flatLen) {
+          wy = FLOOR_Y;
+          wz = (wallZ + curveR) + (flatLen - dist);
+        } else if (dist <= flatLen + arcLen) {
+          const theta = (dist - flatLen) / curveR;
+          wy = FLOOR_Y + curveR * (1.0 - Math.cos(theta));
+          wz = (wallZ + curveR) - curveR * Math.sin(theta);
+        } else {
+          wy = FLOOR_Y + curveR + (dist - flatLen - arcLen);
+          wz = wallZ;
+        }
+        // Gentle studio wrap-around wings at wide X so extreme 3D camera orbits stay inside warm paper!
+        const wrapZ = Math.min(18.0, (x * x) * 0.0085);
+        pos.setXYZ(i, x, wy, wz + wrapZ);
+      }
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    const cycloMat = new THREE.ShaderMaterial({
+      uniforms: studioUniforms,
+      vertexShader: /* glsl */ `
+        varying vec3 vWorldPos;
+        varying vec3 vNormalW;
+        void main() {
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          vNormalW = normalize(mat3(modelMatrix) * normal);
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform float uTime;
+        uniform vec3 uCausticTint;
+        uniform vec2 uTilt;
+        uniform float uRipple;
+        uniform vec3 uDevicePos;
+
+        varying vec3 vWorldPos;
+        varying vec3 vNormalW;
+
+        ${GLSL_SRGB_HELPER}
+
+        // Warm photographic prism spectrum (crimson-coral -> warm gold -> pure white -> cyan -> violet)
+        vec3 prismSpectrum(float t) {
+          float u = clamp(t, 0.0, 1.0);
+          vec3 c1 = srgb(1.00, 0.42, 0.24); // Warm red-orange fringe
+          vec3 c2 = srgb(1.00, 0.88, 0.54); // Sunlit gold
+          vec3 c3 = srgb(1.00, 0.99, 0.95); // Focused white core
+          vec3 c4 = srgb(0.42, 0.88, 0.98); // Crisp aqua-cyan
+          vec3 c5 = srgb(0.46, 0.48, 0.95); // Indigo-violet fringe
+          if (u < 0.25) return mix(c1, c2, u * 4.0);
+          if (u < 0.50) return mix(c2, c3, (u - 0.25) * 4.0);
+          if (u < 0.75) return mix(c3, c4, (u - 0.50) * 4.0);
+          return mix(c4, c5, (u - 0.75) * 4.0);
+        }
+
+        float sdRoundRect(vec2 p, vec2 b, float r) {
+          vec2 q = abs(p) - b + vec2(r);
+          return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+        }
+
+        void main() {
+          // Exact pixel-calibrated studio paper palette from reference (#F4EBDF sunlit -> #B0A28B warm gobo!)
+          vec3 sunlitIvory = srgb(0.957, 0.922, 0.875);
+          vec3 warmMid     = srgb(0.914, 0.882, 0.827);
+          vec3 goboShadow  = srgb(0.690, 0.635, 0.545);
+
+          // Gentle natural studio falloff from upper-left key light toward lower-right
+          float keyGrad = clamp((vWorldPos.x * 0.045 - vWorldPos.y * 0.035) + 0.35, 0.0, 1.0);
+          vec3 col = mix(sunlitIvory, warmMid, keyGrad * 0.55);
+
+          // Diagonal architectural window-gobo shadow sweeping across upper-right wall (matches reference!)
+          float goboCoord = vWorldPos.x * 0.64 + vWorldPos.y * 0.77;
+          float wallGobo = smoothstep(2.3, 5.1, goboCoord);
+          col = mix(col, goboShadow, wallGobo * 0.92);
+
+          float isFloor = clamp(vNormalW.y, 0.0, 1.0);
+
+          if (isFloor > 0.15) {
+            // Subtle warm studio horizon crease along left/rear tabletop (#D6CDBB)
+            float horizonCrease = exp(-pow((vWorldPos.z + 2.35 - vWorldPos.x * 0.08) * 0.72, 2.0));
+            float leftWeight = smoothstep(3.5, -6.5, vWorldPos.x);
+            col = mix(col, srgb(0.820, 0.784, 0.710), horizonCrease * leftWeight * 0.58 * isFloor);
+
+            // -----------------------------------------------------------------
+            // Elongated Low-Angle Cast Shadow Stretching Right Across the Floor!
+            // (Account for ~6.5x grazing camera foreshortening in world Z!)
+            // -----------------------------------------------------------------
+            vec2 shCenter = uDevicePos.xz + vec2(5.2, -0.35) + vec2(-uTilt.y * 1.4, uTilt.x * 1.8);
+            vec2 rel = vWorldPos.xz - shCenter;
+            // Slope shadow upward-right into studio depth (-Z as +X increases) matching reference!
+            float shSlopeZ = rel.y + rel.x * 0.38;
+            vec2 sp = vec2(rel.x * 0.22, shSlopeZ * 0.42);
+
+            float dOuter = sdRoundRect(sp, vec2(1.95, 0.92), 0.38);
+            float dInner = sdRoundRect(sp - vec2(-0.12, 0.04), vec2(1.18, 0.52), 0.18);
+
+            float shadowBody = 1.0 - smoothstep(-0.16, 0.48, dOuter);
+            float shadowWindow = 1.0 - smoothstep(-0.08, 0.28, dInner);
+            float rightMask = smoothstep(0.45, 1.45, vWorldPos.x - uDevicePos.x);
+
+            // Tight dark contact occlusion directly beneath bottom-right corner of the tilted shell!
+            vec2 touchPt = uDevicePos.xz + vec2(0.84, 0.35);
+            float touchDist = length((vWorldPos.xz - touchPt) * vec2(0.65, 0.55));
+            float contactAO = exp(-touchDist * touchDist * 1.35) * 0.52;
+
+            // Shimmering water caustics focused inside the cast shadow window
+            float wWave = sin(sp.x * 8.5 + uTime * 2.4) * cos(sp.y * 6.5 - uTime * 2.1);
+            float waterFocus = pow(clamp(0.5 + 0.5 * wWave, 0.001, 1.0), 2.2);
+
+            float totalUmbra = shadowBody * rightMask * (1.0 - shadowWindow * 0.42) * 0.62 + contactAO;
+            col = mix(col, srgb(0.545, 0.498, 0.416), clamp(totalUmbra, 0.0, 0.74) * isFloor);
+            col += uCausticTint * (shadowWindow * rightMask * (0.08 + waterFocus * 0.15)) * isFloor;
+
+            // -----------------------------------------------------------------
+            // Sweeping Curved Prismatic Caustic Arc + Needle-Sharp Tangent Rays!
+            // (Scaled in world Z for true perspective tabletop sweep!)
+            // -----------------------------------------------------------------
+            vec2 focusOrigin = uDevicePos.xz + vec2(0.72, 0.45);
+            vec2 fp = vWorldPos.xz - focusOrigin;
+
+            // 1. Primary sweeping rainbow-dispersed caustic arc curving across right foreground!
+            float rx = fp.x;
+            float arcZ = 1.15 - rx * 0.62 + 0.068 * rx * rx + sin(uTime * 1.6) * uRipple * 4.5;
+            float distToArc = (fp.y - arcZ) * 0.48;
+            float arcMaskX = smoothstep(-0.8, 0.55, rx) * exp(-max(0.0, rx - 1.6) * 0.20);
+            float arcCore = exp(-pow(distToArc * 2.1, 2.0));
+            vec3 arcCol = prismSpectrum(clamp(0.52 - distToArc * 1.25, 0.0, 1.0));
+
+            // Secondary tighter inner caustic arc hugging the cast shadow edge
+            float distArc2 = (fp.y - (arcZ - 1.85 + rx * 0.14)) * 0.58;
+            float arc2Core = exp(-pow(distArc2 * 2.4, 2.0)) * smoothstep(-0.1, 1.2, rx) * exp(-max(0.0, rx - 1.8) * 0.24);
+            vec3 arc2Col = prismSpectrum(clamp(0.48 + distArc2 * 1.35, 0.0, 1.0));
+
+            // 2. Razor-thin straight tangent caustic filaments fanning across the foreground floor!
+            vec2 fanVec = vec2(fp.x * 0.85, (fp.y + 0.25) * 0.26);
+            float rLen = length(fanVec);
+            float theta = atan(fanVec.y, fanVec.x);
+            float frontFan = smoothstep(-0.15, 0.35, fanVec.y + 0.12) * smoothstep(0.18, 0.85, rLen) * exp(-max(0.0, rLen - 0.9) * 0.34);
+
+            float rayPhase1 = theta * 5.0 - uTilt.y * 2.5 + 0.35;
+            float rayPhase2 = theta * 8.0 + uTilt.y * 1.8 - 0.90;
+
+            vec3 sharpFan1 = vec3(
+              exp(-pow(abs(sin(rayPhase1 - 0.055)) * 7.4, 1.55)),
+              exp(-pow(abs(sin(rayPhase1))         * 7.4, 1.55)),
+              exp(-pow(abs(sin(rayPhase1 + 0.060)) * 7.4, 1.55))
+            );
+            vec3 sharpFan2 = vec3(
+              exp(-pow(abs(sin(rayPhase2 - 0.045)) * 9.0, 1.6)),
+              exp(-pow(abs(sin(rayPhase2))         * 9.0, 1.6)),
+              exp(-pow(abs(sin(rayPhase2 + 0.050)) * 9.0, 1.6))
+            );
+
+            vec3 hdrCaustics =
+              arcCol * arcCore * arcMaskX * 0.62 +
+              arc2Col * arc2Core * 0.44 +
+              sharpFan1 * srgb(1.0, 0.94, 0.84) * frontFan * 0.50 +
+              sharpFan2 * srgb(0.92, 0.96, 1.0) * frontFan * 0.32;
+
+            col += hdrCaustics * isFloor;
+          }
+
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `
+    });
+
+    const cyclorama = new THREE.Mesh(createCycloramaGeometry(), cycloMat);
+    scene.add(cyclorama);
+
+    // =========================================================================
+    // 5. Custom Multi-Bounce Optical Materials (Linear Space!)
+    //    - `shellPolyMat`: Outer Glacier polycarbonate clamshell (samples `tankSceneRT`)
+    //    - `clearAcrylicBezelMat`: Stepped PMMA inner tank bezel (samples `tankSceneRT`)
+    //    - `standoffGlassMat`: Upper tank clear acrylic standoffs (samples `backdropRT`)
+    // =========================================================================
+    const shellSharedUniforms = {
+      uHousingTex: { value: housingRT.texture },
+      uSceneTex: { value: tankSceneRT.texture },
+      uBackdropTex: { value: backdropRT.texture },
+      uResolution: { value: globalRes },
+      uSigma: { value: SHELL_THEMES.glacier.sigma.clone() },
+      uDeepEdge: { value: SHELL_THEMES.glacier.deepEdge.clone() },
+      uDarkGroove: { value: SHELL_THEMES.glacier.darkGroove.clone() },
+      uIceRim: { value: SHELL_THEMES.glacier.iceRim.clone() }
+    };
+
+    const shellPolyMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uSceneTex: shellSharedUniforms.uHousingTex,
+        uResolution: shellSharedUniforms.uResolution,
+        uSigma: shellSharedUniforms.uSigma,
+        uDeepEdge: shellSharedUniforms.uDeepEdge,
+        uDarkGroove: shellSharedUniforms.uDarkGroove,
+        uIceRim: shellSharedUniforms.uIceRim
+      },
+      vertexShader: /* glsl */ `
+        varying vec3 vWorldPos;
+        varying vec3 vNormalW;
+        varying vec3 vLocalPos;
+        varying vec3 vLocalNormal;
+        void main() {
+          vLocalPos = position;
+          vLocalNormal = normalize(normal);
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          vNormalW = normalize(mat3(modelMatrix) * normal);
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D uSceneTex;
+        uniform vec2 uResolution;
+        uniform vec3 uSigma;
+        uniform vec3 uDeepEdge;
+        uniform vec3 uDarkGroove;
+        uniform vec3 uIceRim;
+
+        varying vec3 vWorldPos;
+        varying vec3 vNormalW;
+        varying vec3 vLocalPos;
+        varying vec3 vLocalNormal;
+
+        void main() {
+          vec2 screenUV = gl_FragCoord.xy / uResolution;
+          vec3 V = normalize(cameraPosition - vWorldPos);
+          vec3 N = normalize(vNormalW);
+          if (!gl_FrontFacing) N = -N;
+
+          float ndv = clamp(dot(N, V), 0.0, 1.0);
+          float grazing = 1.0 - ndv;
+
+          // View-space Snell refraction + chromatic dispersion across polycarbonate bevels!
+          vec3 viewN = normalize((viewMatrix * vec4(N, 0.0)).xyz);
+          float refrAmt = 0.018 + grazing * 0.036;
+
+          vec2 uvR = clamp(screenUV - viewN.xy * refrAmt * 0.91, 0.002, 0.998);
+          vec2 uvG = clamp(screenUV - viewN.xy * refrAmt * 1.00, 0.002, 0.998);
+          vec2 uvB = clamp(screenUV - viewN.xy * refrAmt * 1.10, 0.002, 0.998);
+
+          vec3 bg = vec3(
+            texture2D(uSceneTex, uvR).r,
+            texture2D(uSceneTex, uvG).g,
+            texture2D(uSceneTex, uvB).b
+          );
+
+          // Detect 3D outer side wall (abs(vLocalNormal.z) < 0.55) and directional studio key shading!
+          float isSideWall = 1.0 - smoothstep(0.35, 0.82, abs(vLocalNormal.z));
+          vec3 L_key = normalize(vec3(-0.68, 0.60, 0.42));
+          float keyShade = clamp(dot(N, L_key) * 0.5 + 0.5, 0.0, 1.0);
+
+          // Physical Beer-Lambert optical absorption (deeper on shaded 3D right side wall & bevels!)
+          float opticalPath = 0.92 + pow(grazing, 1.7) * 3.4 + isSideWall * (1.15 + (1.0 - keyShade) * 0.85);
+          vec3 transmittance = exp(-uSigma * opticalPath);
+
+          vec3 col = bg * transmittance;
+
+          // Multi-band Total Internal Reflection (TIR) striations along front/back side-wall edges & clamshell parting seam!
+          float clamshellSeam = exp(-pow(vLocalPos.z * 18.0, 2.0)) * (0.35 + isSideWall * 0.65);
+          float frontBackWallStriation = exp(-pow((abs(vLocalPos.z) - 0.46) * 16.0, 2.0)) * isSideWall;
+          float tirBand1 = exp(-pow((grazing - 0.62) * 6.8, 2.0));
+          float tirBand2 = exp(-pow((grazing - 0.86) * 10.5, 2.0));
+          float tirIce   = exp(-pow((grazing - 0.76) * 10.0, 2.0));
+
+          col = mix(col, uDeepEdge, clamp(tirBand1 * 0.58 + frontBackWallStriation * 0.52, 0.0, 0.85));
+          col = mix(col, uDarkGroove, clamp(tirBand2 * 0.64 + clamshellSeam * 0.58, 0.0, 0.88));
+          col += uIceRim * (tirIce * 0.30 * (0.55 + 0.45 * keyShade));
+
+          // Studio Softbox Area-Light Speculars (Sunlit Left-Top Key + Crisp Right Rim)
+          vec3 H_key = normalize(L_key + V);
+          float specSharp = pow(max(dot(N, H_key), 0.0), 195.0);
+          float specSoft  = pow(max(dot(N, H_key), 0.0), 28.0);
+
+          vec3 L_rim = normalize(vec3(0.76, 0.24, 0.60));
+          vec3 H_rim = normalize(L_rim + V);
+          float specRim = pow(max(dot(N, H_rim), 0.0), 170.0);
+
+          // Polycarbonate Schlick Fresnel (gated by key light so right side wall stays rich & moody, not milky!)
+          float fresnel = 0.045 + 0.955 * pow(grazing, 4.6);
+
+          float leftSunCatch = pow(max(dot(N, normalize(vec3(-0.85, 0.35, 0.38))), 0.0), 5.5) * smoothstep(0.2, 0.8, grazing);
+          col += vec3(1.05, 0.97, 0.86) * (leftSunCatch * 0.38 + specSharp * 1.40 + specSoft * 0.08);
+          col += mix(uIceRim, vec3(1.0), 0.65) * (specRim * 0.78 + fresnel * (0.10 + 0.16 * keyShade));
+
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `
+    });
+
+    function makeClearAcrylicShader(texUniform) {
+      return new THREE.ShaderMaterial({
+        uniforms: {
+          uTex: texUniform,
+          uResolution: shellSharedUniforms.uResolution
+        },
+        vertexShader: /* glsl */ `
+          varying vec3 vWorldPos;
+          varying vec3 vNormalW;
+          void main() {
+            vec4 wp = modelMatrix * vec4(position, 1.0);
+            vWorldPos = wp.xyz;
+            vNormalW = normalize(mat3(modelMatrix) * normal);
+            gl_Position = projectionMatrix * viewMatrix * wp;
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          uniform sampler2D uTex;
+          uniform vec2 uResolution;
+          varying vec3 vWorldPos;
+          varying vec3 vNormalW;
+          ${GLSL_SRGB_HELPER}
+
+          void main() {
+            vec2 screenUV = gl_FragCoord.xy / uResolution;
+            vec3 V = normalize(cameraPosition - vWorldPos);
+            vec3 N = normalize(vNormalW);
+            if (!gl_FrontFacing) N = -N;
+
+            float ndv = clamp(dot(N, V), 0.0, 1.0);
+            float grazing = 1.0 - ndv;
+
+            vec3 viewN = normalize((viewMatrix * vec4(N, 0.0)).xyz);
+            float offs = 0.016 + grazing * 0.038;
+            vec3 bg = vec3(
+              texture2D(uTex, clamp(screenUV - viewN.xy * offs * 0.90, 0.002, 0.998)).r,
+              texture2D(uTex, clamp(screenUV - viewN.xy * offs * 1.00, 0.002, 0.998)).g,
+              texture2D(uTex, clamp(screenUV - viewN.xy * offs * 1.10, 0.002, 0.998)).b
+            );
+
+            // Crystal-clear PMMA acrylic: slight cool-glass absorption + crisp dark slate TIR groove + bright HDR white bevel!
+            float tirDark  = exp(-pow((grazing - 0.66) * 7.8, 2.0));
+            float tirOuter = exp(-pow((grazing - 0.90) * 12.0, 2.0));
+            float whiteBevel = exp(-pow((grazing - 0.80) * 10.5, 2.0));
+
+            vec3 col = bg * vec3(0.93, 0.96, 0.97);
+            col = mix(col, srgb(0.22, 0.28, 0.31), tirDark * 0.62 + tirOuter * 0.55);
+            col += vec3(1.15, 1.16, 1.18) * whiteBevel * 0.58;
+
+            vec3 L = normalize(vec3(-0.62, 0.68, 0.46));
+            vec3 H = normalize(L + V);
+            float spec = pow(max(dot(N, H), 0.0), 185.0);
+            col += vec3(1.4, 1.38, 1.34) * spec;
+
+            gl_FragColor = vec4(col, 1.0);
+          }
+        `
+      });
+    }
+
+    const clearAcrylicBezelMat = makeClearAcrylicShader(shellSharedUniforms.uSceneTex);
+    const standoffGlassMat = makeClearAcrylicShader(shellSharedUniforms.uBackdropTex);
+
+    // =========================================================================
+    // 6. Precision Injection-Molded Handheld Geometry
+    // =========================================================================
+    function makeRoundedRectShape(w, h, r, cx = 0, cy = 0) {
+      const shape = new THREE.Shape();
+      const x = cx - w * 0.5;
+      const y = cy - h * 0.5;
+      shape.moveTo(x + r, y);
+      shape.lineTo(x + w - r, y);
+      shape.quadraticCurveTo(x + w, y, x + w, y + r);
+      shape.lineTo(x + w, y + h - r);
+      shape.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      shape.lineTo(x + r, y + h);
+      shape.quadraticCurveTo(x, y + h, x, y + h - r);
+      shape.lineTo(x, y + r);
+      shape.quadraticCurveTo(x, y, x + r, y);
+      return shape;
+    }
+
+    function makeRoundedRectHole(w, h, r, cx = 0, cy = 0) {
+      const pts = [];
+      const segs = 18;
+      const corners = [
+        { x: cx + w * 0.5 - r, y: cy + h * 0.5 - r, a0: 0, a1: Math.PI * 0.5 },
+        { x: cx - w * 0.5 + r, y: cy + h * 0.5 - r, a0: Math.PI * 0.5, a1: Math.PI },
+        { x: cx - w * 0.5 + r, y: cy - h * 0.5 + r, a0: Math.PI, a1: Math.PI * 1.5 },
+        { x: cx + w * 0.5 - r, y: cy - h * 0.5 + r, a0: Math.PI * 1.5, a1: Math.PI * 2.0 }
+      ];
+      for (const c of corners) {
+        for (let i = 0; i <= segs; i++) {
+          const a = c.a0 + (c.a1 - c.a0) * (i / segs);
+          pts.push(new THREE.Vector2(c.x + Math.cos(a) * r, c.y + Math.sin(a) * r));
+        }
+      }
+      pts.reverse();
+      const path = new THREE.Path();
+      path.setFromPoints(pts);
+      path.closePath();
+      return path;
+    }
+
+    const deviceGroup = new THREE.Group();
+    deviceGroup.position.set(-0.08, 0.18, 0);
+    scene.add(deviceGroup);
+
+    const tankGroup = new THREE.Group();
+    tankGroup.position.set(0, TANK_CENTER_Y, 0);
+    deviceGroup.add(tankGroup);
+
+    // Visibility buckets for our clean 3-stage optical render pipeline:
+    // - Pass 1 (`backdropRT`): ONLY `cyclorama` visible (`deviceGroup.visible = false`)
+    // - Pass 2 (`tankSceneRT`): `deviceGroup.visible = true`, `pass3OnlyMeshes` hidden!
+    // - Pass 3 (`EffectComposer`): Everything visible!
+    const pass3OnlyMeshes = [];
+
+    // -------------------------------------------------------------------------
+    // 6A. Outer Polycarbonate Housing (Cleanly framing `tankBezel` with zero overlap!)
+    // -------------------------------------------------------------------------
+    // Note: `bevelSize = 0.13` expands inward into the hole by 0.13 per side (0.26 total).
+    // Setting hole to `TANK_W + 0.56` yields an inner opening of `TANK_W + 0.30`, which meets
+    // `tankBezel` (`TANK_W + 0.30` outer -> `TANK_W` inner) with surgical precision!
+    const shellBevel = 0.13;
+    const outerShellShape = makeRoundedRectShape(BODY_W - shellBevel * 2, BODY_H - shellBevel * 2, BODY_R - shellBevel, 0, 0);
+    outerShellShape.holes.push(
+      makeRoundedRectHole(TANK_W + 0.30 + shellBevel * 2, TANK_H + 0.30 + shellBevel * 2, TANK_R + 0.12 + shellBevel, 0, TANK_CENTER_Y)
+    );
+
+    const shellExtrudeGeo = new THREE.ExtrudeGeometry(outerShellShape, {
+      depth: BODY_D - shellBevel * 2,
+      bevelEnabled: true,
+      bevelSegments: 10,
+      steps: 1,
+      bevelSize: shellBevel,
+      bevelThickness: shellBevel,
+      curveSegments: 36
+    });
+    shellExtrudeGeo.translate(0, 0, -(BODY_D - shellBevel * 2) * 0.5);
+
+    const shellMesh = new THREE.Mesh(shellExtrudeGeo, shellPolyMat);
+    deviceGroup.add(shellMesh);
+    pass3OnlyMeshes.push(shellMesh);
+
+    // -------------------------------------------------------------------------
+    // 6B. Internal Molded Architecture (Rendered in Pass 2 so `shellMesh` refracts it!)
+    //     Includes: Double-wall inner rib, clamshell parting seam, top water-fill lid,
+    //     bottom clasp block, recessed translucent corner bosses, and detailed lower
+    //     ribbed check-valve piston + curved silicone feed tube + slanted air channels!
+    // -------------------------------------------------------------------------
+    const internalMoldMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      uniforms: {
+        uColor: { value: SHELL_THEMES.glacier.ribCol.clone() },
+        uDeep: { value: SHELL_THEMES.glacier.deepEdge.clone() },
+        uOpacity: { value: 0.42 }
+      },
+      vertexShader: /* glsl */ `
+        varying vec3 vNormalW;
+        varying vec3 vWorldPos;
+        void main() {
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          vNormalW = normalize(mat3(modelMatrix) * normal);
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uColor;
+        uniform vec3 uDeep;
+        uniform float uOpacity;
+        varying vec3 vNormalW;
+        varying vec3 vWorldPos;
+        void main() {
+          vec3 V = normalize(cameraPosition - vWorldPos);
+          vec3 N = normalize(vNormalW);
+          float ndv = abs(dot(N, V));
+          float edge = pow(1.0 - ndv, 1.6);
+          vec3 L = normalize(vec3(-0.6, 0.7, 0.5));
+          float spec = pow(max(dot(N, normalize(L + V)), 0.0), 48.0);
+          vec3 col = mix(uColor, uDeep, edge * 0.65) + vec3(0.95) * spec * 0.45;
+          float alpha = clamp(uOpacity * (0.45 + edge * 0.95) + spec * 0.35, 0.0, 0.88);
+          gl_FragColor = vec4(col, alpha);
+        }
+      `
+    });
+
+    const clearInternalSiliconeMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      vertexShader: /* glsl */ `
+        varying vec3 vNormalW;
+        varying vec3 vWorldPos;
+        void main() {
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          vNormalW = normalize(mat3(modelMatrix) * normal);
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        varying vec3 vNormalW;
+        varying vec3 vWorldPos;
+        ${GLSL_SRGB_HELPER}
+        void main() {
+          vec3 V = normalize(cameraPosition - vWorldPos);
+          vec3 N = normalize(vNormalW);
+          float ndv = abs(dot(N, V));
+          float rim = pow(1.0 - ndv, 1.4);
+          vec3 L = normalize(vec3(-0.6, 0.7, 0.5));
+          float lit = clamp(dot(N, L) * 0.5 + 0.5, 0.0, 1.0);
+          float spec = pow(max(dot(N, normalize(L + V)), 0.0), 60.0);
+          vec3 col = mix(srgb(0.42, 0.56, 0.62), srgb(0.96, 0.98, 0.99), lit * 0.75) + vec3(1.0) * spec * 0.7;
+          float alpha = clamp(0.32 + rim * 0.52 + spec * 0.4, 0.0, 0.90);
+          gl_FragColor = vec4(col, alpha);
+        }
+      `
+    });
+
+    // Double-wall perimeter rib inside outer edge
+    const innerRibShape = makeRoundedRectShape(BODY_W - 0.32, BODY_H - 0.32, BODY_R - 0.14, 0, 0);
+    innerRibShape.holes.push(makeRoundedRectHole(BODY_W - 0.42, BODY_H - 0.42, BODY_R - 0.18, 0, 0));
+    const innerRibGeo = new THREE.ExtrudeGeometry(innerRibShape, { depth: BODY_D * 0.72, bevelEnabled: false, curveSegments: 32 });
+    innerRibGeo.translate(0, 0, -BODY_D * 0.36);
+    deviceGroup.add(new THREE.Mesh(innerRibGeo, internalMoldMat));
+
+    // Top-center rectangular molded water-fill plug block (matches top center of reference!)
+    const topCapBlock = new THREE.Mesh(
+      new RoundedBoxGeometry(1.68, 0.58, BODY_D * 0.68, 4, 0.07),
+      internalMoldMat
+    );
+    topCapBlock.position.set(0, BODY_H * 0.5 - 0.36, -0.02);
+    deviceGroup.add(topCapBlock);
+
+    // Bottom-center molded clasp block (matches bottom center of reference!)
+    const botClaspBlock = new THREE.Mesh(
+      new RoundedBoxGeometry(0.86, 0.38, BODY_D * 0.68, 4, 0.06),
+      internalMoldMat
+    );
+    botClaspBlock.position.set(0, -BODY_H * 0.5 + 0.22, -0.02);
+    deviceGroup.add(botClaspBlock);
+
+    // 4 Molded Translucent Corner Screw Bosses (recessed polycarbonate cylinders — NO black metal rods!)
+    const cornerOuterGeo = new THREE.CylinderGeometry(0.165, 0.165, BODY_D * 0.58, 24);
+    cornerOuterGeo.rotateX(Math.PI * 0.5);
+    const cornerInnerGeo = new THREE.CylinderGeometry(0.075, 0.075, BODY_D * 0.42, 18);
+    cornerInnerGeo.rotateX(Math.PI * 0.5);
+
+    const cornerCoords = [
+      [-BODY_W * 0.5 + 0.48,  BODY_H * 0.5 - 0.48],
+      [ BODY_W * 0.5 - 0.48,  BODY_H * 0.5 - 0.48],
+      [-BODY_W * 0.5 + 0.46, -BODY_H * 0.5 + 0.46],
+      [ BODY_W * 0.5 - 0.46, -BODY_H * 0.5 + 0.46]
+    ];
+    for (const [cx, cy] of cornerCoords) {
+      const b1 = new THREE.Mesh(cornerOuterGeo, internalMoldMat);
+      b1.position.set(cx, cy, -0.04);
+      const b2 = new THREE.Mesh(cornerInnerGeo, clearInternalSiliconeMat);
+      b2.position.set(cx, cy, 0.02);
+      deviceGroup.add(b1, b2);
+    }
+
+    // Detailed Lower-Center Check-Valve Piston + Curved Silicone Capillary Tube + Air Channels!
+    // (Directly beneath tank bottom center, between the two thumb buttons — signature detail of the reference!)
+    const valveY = TANK_CENTER_Y - HALF_TH - 0.22;
+    const valveGroup = new THREE.Group();
+    deviceGroup.add(valveGroup);
+
+    const valveTopFlange = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.10, 24), clearInternalSiliconeMat);
+    valveTopFlange.position.set(0, valveY + 0.08, 0.0);
+    const valvePistonBody = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 0.28, 24), clearInternalSiliconeMat);
+    valvePistonBody.position.set(0, valveY - 0.08, 0.0);
+    const valveLowerCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.14, 20), clearInternalSiliconeMat);
+    valveLowerCollar.position.set(0, valveY - 0.27, 0.0);
+    valveGroup.add(valveTopFlange, valvePistonBody, valveLowerCollar);
+
+    // Flexible S-curved capillary air tube snaking from valve collar down to bottom clasp
+    const tubeCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0.0,  valveY - 0.32,  0.0),
+      new THREE.Vector3(-0.05, valveY - 0.52, -0.02),
+      new THREE.Vector3(0.04,  valveY - 0.74,  0.01),
+      new THREE.Vector3(0.0,  -BODY_H * 0.5 + 0.38, -0.02)
+    ]);
+    const flexTube = new THREE.Mesh(new THREE.TubeGeometry(tubeCurve, 20, 0.052, 12, false), clearInternalSiliconeMat);
+    valveGroup.add(flexTube);
+
+    // Diagonal molded air-duct ribs connecting left & right button bladders to central check-valve
+    const BUTTON_X = 1.36;
+    const BUTTON_Y = -2.14;
+    for (const sx of [-1, 1]) {
+      const ductCurve = new THREE.LineCurve3(
+        new THREE.Vector3(sx * (BUTTON_X - 0.38), BUTTON_Y + 0.14, -0.05),
+        new THREE.Vector3(sx * 0.22, valveY - 0.06, -0.05)
+      );
+      const ductMesh = new THREE.Mesh(new THREE.TubeGeometry(ductCurve, 8, 0.045, 10, false), internalMoldMat);
+      deviceGroup.add(ductMesh);
+    }
+
+    // -------------------------------------------------------------------------
+    // 6C. Rimmed Frosted-Silicone Thumb Buttons + Recessed Collars!
+    // -------------------------------------------------------------------------
+    const siliconeUniforms = {
+      uLitCol: { value: SHELL_THEMES.glacier.siliconeLit.clone() },
+      uShadeCol: { value: SHELL_THEMES.glacier.siliconeShade.clone() }
+    };
+
+    const siliconeButtonMat = new THREE.ShaderMaterial({
+      uniforms: siliconeUniforms,
+      vertexShader: /* glsl */ `
+        varying vec3 vNormalW;
+        varying vec3 vWorldPos;
+        varying vec3 vLocalPos;
+        void main() {
+          vLocalPos = position;
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          vNormalW = normalize(mat3(modelMatrix) * normal);
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uLitCol;
+        uniform vec3 uShadeCol;
+        varying vec3 vNormalW;
+        varying vec3 vWorldPos;
+        varying vec3 vLocalPos;
+
+        void main() {
+          vec3 V = normalize(cameraPosition - vWorldPos);
+          vec3 N = normalize(vNormalW);
+          vec3 L = normalize(vec3(-0.68, 0.62, 0.48));
+
+          // Soft wrap-around subsurface scattering of frosted translucent silicone rubber!
+          float wrap = clamp(dot(N, L) * 0.55 + 0.48, 0.0, 1.0);
+          float radial = length(vLocalPos.xy);
+          // Subtle inner dish AO inside the raised thumb rim
+          float dishAO = smoothstep(0.38, 0.18, radial) * 0.08;
+          // Rim sheen catch on the raised circular lip
+          float rimSheen = pow(1.0 - max(dot(N, V), 0.0), 2.4) * 0.16;
+
+          vec3 H = normalize(L + V);
+          float matteSpec = pow(max(dot(N, H), 0.0), 18.0) * 0.14;
+
+          vec3 col = mix(uShadeCol, uLitCol, wrap) * (1.0 - dishAO);
+          col += uLitCol * (rimSheen + matteSpec);
+
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `
+    });
+
+    function buildRimmedThumbButtonGeo() {
+      const pts = [
+        new THREE.Vector2(0.45, -0.22),
+        new THREE.Vector2(0.44,  0.03),
+        new THREE.Vector2(0.425, 0.115),
+        new THREE.Vector2(0.385, 0.155), // Tactile raised outer lip
+        new THREE.Vector2(0.335, 0.132), // Subtle concave thumb dish
+        new THREE.Vector2(0.22,  0.122),
+        new THREE.Vector2(0.10,  0.118),
+        new THREE.Vector2(0.0,   0.116)
+      ];
+      const geo = new THREE.LatheGeometry(pts, 44);
+      geo.rotateX(Math.PI * 0.5);
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    const thumbBtnGeo = buildRimmedThumbButtonGeo();
+
+    function createPumpAssembly(sideSign) {
+      const bx = sideSign * BUTTON_X;
+      const by = BUTTON_Y;
+
+      // Internal bladder cylinder & soft blue recessed well shadow (rendered in Pass 2!)
+      const bladder = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.46, 0.50, BODY_D * 0.68, 28),
+        internalMoldMat
+      );
+      bladder.rotation.x = Math.PI * 0.5;
+      bladder.position.set(bx, by, -0.04);
+      deviceGroup.add(bladder);
+
+      // Molded polycarbonate outer collar ring on front shell (Pass 3 refractive!)
+      const collar = new THREE.Mesh(
+        new THREE.TorusGeometry(0.50, 0.055, 16, 40),
+        shellPolyMat
+      );
+      collar.position.set(bx, by, BODY_D * 0.47);
+      deviceGroup.add(collar);
+      pass3OnlyMeshes.push(collar);
+
+      // Tactile 3D silicone plunger (Pass 3!)
+      const btnGroup = new THREE.Group();
+      btnGroup.position.set(bx, by, BODY_D * 0.49);
+
+      const plunger = new THREE.Mesh(thumbBtnGeo, siliconeButtonMat);
+      plunger.userData.pumpSide = sideSign < 0 ? 'left' : 'right';
+      btnGroup.add(plunger);
+      deviceGroup.add(btnGroup);
+      pass3OnlyMeshes.push(btnGroup);
+
+      return { btnGroup };
+    }
+
+    const leftPump = createPumpAssembly(-1);
+    const rightPump = createPumpAssembly(1);
+
+    // -------------------------------------------------------------------------
+    // 6D. Stepped Crystal-Clear Tank Bezel + Analytical Soft Rear-Tank Shadows!
+    // -------------------------------------------------------------------------
+    const bezelBevel = 0.045;
+    const bezelShape = makeRoundedRectShape(TANK_W + 0.30 - bezelBevel * 2, TANK_H + 0.30 - bezelBevel * 2, TANK_R + 0.12 - bezelBevel, 0, 0);
+    bezelShape.holes.push(makeRoundedRectHole(TANK_W + bezelBevel * 2, TANK_H + bezelBevel * 2, TANK_R + bezelBevel, 0, 0));
+
+    const bezelGeo = new THREE.ExtrudeGeometry(bezelShape, {
+      depth: TANK_D + 0.16,
+      bevelEnabled: true,
+      bevelSegments: 8,
+      steps: 1,
+      bevelSize: bezelBevel,
+      bevelThickness: bezelBevel,
+      curveSegments: 32
+    });
+    bezelGeo.translate(0, 0, -(TANK_D + 0.16) * 0.5);
+
+    const tankBezel = new THREE.Mesh(bezelGeo, clearAcrylicBezelMat);
+    tankGroup.add(tankBezel);
+    pass3OnlyMeshes.push(tankBezel);
+
+    // Analytical Real-Time Soft Shadow Catcher on the Rear Acrylic Wall of the Tank (`z = -HALF_TD`)!
+    // Casts noise-free soft shadows from all 5 3D O-rings, 2 glass pegs, and 2 upper standoffs!
+    const ringShadowPosArr = Array.from({ length: RING_COUNT }, () => new THREE.Vector3());
+    const ringShadowNormArr = Array.from({ length: RING_COUNT }, () => new THREE.Vector3(0, 0, 1));
+
+    const rearTankShadowMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      uniforms: {
+        uRingPos: { value: ringShadowPosArr },
+        uRingNorm: { value: ringShadowNormArr }
+      },
+      vertexShader: /* glsl */ `
+        varying vec2 vLocal;
+        void main() {
+          vLocal = position.xy;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uRingPos[${RING_COUNT}];
+        uniform vec3 uRingNorm[${RING_COUNT}];
+        varying vec2 vLocal;
+        ${GLSL_SRGB_HELPER}
+
+        float sdSegment(vec2 p, vec2 a, vec2 b) {
+          vec2 pa = p - a, ba = b - a;
+          float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+          return length(pa - ba * h);
+        }
+
+        void main() {
+          // Key light comes from upper-left-front -> projects shadows slightly right (+X) and down (-Y) onto rear tank wall!
+          vec2 lightShift = vec2(0.19, -0.18);
+          float occ = 0.0;
+
+          // 1. Soft shadows from the 5 3D candy O-rings
+          for (int i = 0; i < ${RING_COUNT}; i++) {
+            float zDist = max(0.05, uRingPos[i].z + ${HALF_TD.toFixed(3)});
+            vec2 projCenter = uRingPos[i].xy + lightShift * (zDist * 1.15);
+            vec2 dp = vLocal - projCenter;
+
+            // Project 2D point onto tilted 3D torus plane along light ray
+            vec3 rayP = vec3(dp, 0.0);
+            vec3 n = uRingNorm[i];
+            // Effective projected ellipse distance to torus ring
+            float dDotN = dot(rayP, n) / max(0.32, abs(n.z));
+            vec3 inPlane = vec3(dp, -dDotN);
+            float rDist = abs(length(inPlane) - ${RING_MAJOR.toFixed(3)});
+            float softness = 0.05 + zDist * 0.06;
+            occ += (1.0 - smoothstep(${RING_TUBE.toFixed(3)} * 0.55, ${RING_TUBE.toFixed(3)} + softness, rDist)) * 0.16;
+          }
+
+          // 2. Soft shadows from the twin glass pegs
+          vec2 pegShift = lightShift * 0.52;
+          float dPegL = sdSegment(vLocal - pegShift, vec2(-${PEG_X.toFixed(3)}, ${PEG_BASE_Y.toFixed(3)}), vec2(-${PEG_X.toFixed(3)}, ${PEG_TIP_Y.toFixed(3)}));
+          float dPegR = sdSegment(vLocal - pegShift, vec2( ${PEG_X.toFixed(3)}, ${PEG_BASE_Y.toFixed(3)}), vec2( ${PEG_X.toFixed(3)}, ${PEG_TIP_Y.toFixed(3)}));
+          occ += (1.0 - smoothstep(0.03, 0.13, min(dPegL, dPegR))) * 0.13;
+
+          // 3. Soft shadows from the two upper clear acrylic standoffs
+          vec2 stShift = lightShift * 0.55;
+          float sx = ${(HALF_TW - 0.44).toFixed(3)};
+          float sy = ${(HALF_TH - 0.36).toFixed(3)};
+          float dStL = sdSegment(vLocal, vec2(-sx, sy), vec2(-sx, sy) + stShift * 1.1);
+          float dStR = sdSegment(vLocal, vec2( sx, sy), vec2( sx, sy) + stShift * 1.1);
+          occ += (1.0 - smoothstep(0.06, 0.20, min(dStL, dStR))) * 0.22;
+
+          // Subtle inner bezel ambient occlusion around tank perimeter
+          vec2 edgeDist = vec2(${HALF_TW.toFixed(3)}, ${HALF_TH.toFixed(3)}) - abs(vLocal);
+          float borderAO = (1.0 - smoothstep(0.0, 0.18, min(edgeDist.x, edgeDist.y))) * 0.10;
+
+          float alpha = clamp(occ + borderAO, 0.0, 0.34);
+          gl_FragColor = vec4(srgb(0.32, 0.29, 0.25), alpha);
+        }
+      `
+    });
+
+    const rearShadowPlane = new THREE.Mesh(
+      new THREE.ShapeGeometry(makeRoundedRectShape(TANK_W, TANK_H, TANK_R, 0, 0), 24),
+      rearTankShadowMat
+    );
+    rearShadowPlane.position.z = -HALF_TD + 0.005;
+    tankGroup.add(rearShadowPlane);
+
+    // 2 Upper Tank Crystal-Clear Acrylic Cylindrical Standoffs (Refracts `backdropRT` with internal glass rings & glints!)
+    const standoffCrystalMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTex: shellSharedUniforms.uBackdropTex,
+        uResolution: shellSharedUniforms.uResolution
+      },
+      vertexShader: /* glsl */ `
+        varying vec3 vWorldPos;
+        varying vec3 vNormalW;
+        varying vec3 vLocalPos;
+        void main() {
+          vLocalPos = position;
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          vNormalW = normalize(mat3(modelMatrix) * normal);
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D uTex;
+        uniform vec2 uResolution;
+        varying vec3 vWorldPos;
+        varying vec3 vNormalW;
+        varying vec3 vLocalPos;
+        ${GLSL_SRGB_HELPER}
+
+        void main() {
+          vec2 screenUV = gl_FragCoord.xy / uResolution;
+          vec3 V = normalize(cameraPosition - vWorldPos);
+          vec3 N = normalize(vNormalW);
+          float ndv = clamp(dot(N, V), 0.0, 1.0);
+          float grazing = 1.0 - ndv;
+
+          vec3 viewN = normalize((viewMatrix * vec4(N, 0.0)).xyz);
+          vec2 refrUV = clamp(screenUV - viewN.xy * 0.020, 0.002, 0.998);
+          vec3 bg = texture2D(uTex, refrUV).rgb;
+
+          // Clear acrylic cylindrical post with crisp dark TIR rings + sparkling white highlights!
+          float ringRibs = pow(abs(sin(vLocalPos.y * 28.0)), 6.0) * 0.35;
+          float tirEdge  = smoothstep(0.45, 0.88, grazing);
+          vec3 L = normalize(vec3(-0.62, 0.68, 0.50));
+          float spec = pow(max(dot(N, normalize(L + V)), 0.0), 95.0);
+
+          vec3 col = bg * vec3(0.95, 0.97, 0.98);
+          col = mix(col, srgb(0.26, 0.32, 0.35), clamp(tirEdge * 0.68 + ringRibs, 0.0, 0.82));
+          col += vec3(1.45, 1.44, 1.40) * (spec + pow(grazing, 5.0) * 0.45);
+
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `
+    });
+
+    for (const sx of [-1, 1]) {
+      const ux = sx * (HALF_TW - 0.44);
+      const uy = HALF_TH - 0.36;
+
+      const postGroup = new THREE.Group();
+      postGroup.position.set(ux, uy, -0.08);
+
+      const postBody = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.108, 0.125, TANK_D * 0.68, 28),
+        standoffCrystalMat
+      );
+      postBody.rotation.x = Math.PI * 0.5;
+      postGroup.add(postBody);
+
+      const frontRim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.086, 0.022, 14, 28),
+        standoffCrystalMat
+      );
+      frontRim.position.z = TANK_D * 0.34;
+      postGroup.add(frontRim);
+
+      const microCap = new THREE.Mesh(
+        new THREE.TorusGeometry(0.036, 0.012, 10, 20),
+        standoffCrystalMat
+      );
+      microCap.position.z = TANK_D * 0.35;
+      postGroup.add(microCap);
+
+      tankGroup.add(postGroup);
+    }
+
+    // =========================================================================
+    // 7. Subsurface-Glowing Candy O-Rings & Transparent Borosilicate Glass Pegs!
+    // =========================================================================
+    const ringGeo = new THREE.TorusGeometry(RING_MAJOR, RING_TUBE, 36, 72);
+    const rings = [];
+
+    function createCandyRingMaterial(pal) {
+      return new THREE.ShaderMaterial({
+        uniforms: {
+          uBase: { value: new THREE.Color(pal.base) },
+          uCore: { value: new THREE.Color(pal.core) },
+          uDeep: { value: new THREE.Color(pal.deep) }
+        },
+        vertexShader: /* glsl */ `
+          varying vec3 vNormalW;
+          varying vec3 vWorldPos;
+          void main() {
+            vec4 wp = modelMatrix * vec4(position, 1.0);
+            vWorldPos = wp.xyz;
+            vNormalW = normalize(mat3(modelMatrix) * normal);
+            gl_Position = projectionMatrix * viewMatrix * wp;
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          uniform vec3 uBase;
+          uniform vec3 uCore;
+          uniform vec3 uDeep;
+          varying vec3 vNormalW;
+          varying vec3 vWorldPos;
+
+          void main() {
+            vec3 V = normalize(cameraPosition - vWorldPos);
+            vec3 N = normalize(vNormalW);
+            float ndv = clamp(dot(N, V), 0.0, 1.0);
+
+            vec3 L = normalize(vec3(-0.64, 0.68, 0.46));
+            float ndl = dot(N, L);
+            float wrap = clamp(ndl * 0.52 + 0.52, 0.0, 1.0);
+
+            // Rich jewel-toned gummy/acrylic translucency: luminous inner tube glow + saturated underside!
+            float coreGlow = pow(ndv, 1.5) * (0.35 + 0.65 * wrap);
+            float edgeShade = pow(1.0 - ndv, 2.1);
+
+            vec3 col = mix(uBase, uCore, coreGlow * 0.58);
+            col = mix(col, uDeep, edgeShade * 0.46 + (1.0 - wrap) * 0.36);
+
+            // Warm subsurface forward scatter
+            float sss = pow(clamp(dot(V, -L + N * 0.45), 0.0, 1.0), 2.8);
+            col += uCore * sss * 0.26;
+
+            // Smooth satin-wet clearcoat highlight
+            vec3 H = normalize(L + V);
+            float specSharp = pow(max(dot(N, H), 0.0), 85.0);
+            float specSoft  = pow(max(dot(N, H), 0.0), 16.0);
+            col += vec3(1.15, 1.12, 1.06) * (specSharp * 0.52 + specSoft * 0.10);
+
+            gl_FragColor = vec4(col, 1.0);
+          }
+        `
+      });
+    }
+
+    for (let i = 0; i < RING_COUNT; i++) {
+      const mesh = new THREE.Mesh(ringGeo, createCandyRingMaterial(RING_PALETTE[i % RING_PALETTE.length]));
+      mesh.renderOrder = 1;
+      tankGroup.add(mesh);
+
+      rings.push({
+        index: i,
+        mesh,
+        pos: new THREE.Vector3(),
+        vel: new THREE.Vector3(),
+        quat: new THREE.Quaternion(),
+        angVel: new THREE.Vector3(),
+        hookedPeg: 0
+      });
+    }
+
+    // Twin Transparent Borosilicate Glass Capillary Pegs!
+    // Drawn right after `rings` (`renderOrder = 2`, `depthTest: true`, `transparent: true`) so:
+    // - Front half of any hooked ring cleanly occludes the glass peg via Z-buffer,
+    // - Back half of any hooked ring shines visibly *through* the clear glass center of the peg,
+    // - Left & right grazing edges have crisp dark slate glass refraction lines + pure white specular streak!
+    const borosilicatePegMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthTest: true,
+      depthWrite: true,
+      vertexShader: /* glsl */ `
+        varying vec3 vWorldPos;
+        varying vec3 vNormalW;
+        void main() {
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          vNormalW = normalize(mat3(modelMatrix) * normal);
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        varying vec3 vWorldPos;
+        varying vec3 vNormalW;
+        ${GLSL_SRGB_HELPER}
+
+        void main() {
+          vec3 V = normalize(cameraPosition - vWorldPos);
+          vec3 N = normalize(vNormalW);
+          vec3 viewN = normalize((viewMatrix * vec4(N, 0.0)).xyz);
+          float ndv = clamp(dot(N, V), 0.0, 1.0);
+
+          // Crisp borosilicate glass rod optics (100% transparent glass core + razor-thin dark TIR walls + sharp left white streak!):
+          float leftRightWall = smoothstep(0.54, 0.16, ndv);
+          float rightInnerLine = exp(-pow((viewN.x - 0.62) * 6.5, 2.0));
+          float leftSpecStreak = exp(-pow((viewN.x + 0.52) * 9.5, 2.0)) * smoothstep(0.12, 0.72, ndv);
+
+          vec3 L = normalize(vec3(-0.62, 0.68, 0.52));
+          vec3 H = normalize(L + V);
+          float tipGlint = pow(max(dot(N, H), 0.0), 130.0);
+
+          vec3 darkGlass = srgb(0.22, 0.28, 0.31);
+          vec3 clearCore = srgb(0.78, 0.84, 0.86);
+
+          float darkFactor = clamp(leftRightWall * 0.88 + rightInnerLine * 0.45, 0.0, 0.96);
+          vec3 col = mix(clearCore, darkGlass, darkFactor);
+          col += vec3(1.38, 1.36, 1.32) * (leftSpecStreak * 0.95 + tipGlint * 1.25);
+
+          // Ultra-clear 0.03 center alpha so tank backdrop & hooked rings shine right through the glass rod!
+          float alpha = clamp(0.03 + darkFactor * 0.82 + leftSpecStreak * 0.88 + tipGlint * 0.90, 0.0, 0.96);
+          gl_FragColor = vec4(col, alpha);
+        }
+      `
+    });
+
+    const pegHeight = PEG_TIP_Y - PEG_BASE_Y;
+    for (const sx of [-1, 1]) {
+      const px = sx * PEG_X;
+
+      const shaft = new THREE.Mesh(
+        new THREE.CylinderGeometry(PEG_RADIUS * 0.94, PEG_RADIUS * 1.04, pegHeight, 28),
+        borosilicatePegMat
+      );
+      shaft.position.set(px, PEG_BASE_Y + pegHeight * 0.5, 0);
+      shaft.renderOrder = 2;
+      tankGroup.add(shaft);
+
+      const domeTip = new THREE.Mesh(
+        new THREE.SphereGeometry(PEG_RADIUS * 0.94, 24, 16),
+        borosilicatePegMat
+      );
+      domeTip.position.set(px, PEG_TIP_Y, 0);
+      domeTip.renderOrder = 2;
+      tankGroup.add(domeTip);
+    }
+
+    // =========================================================================
+    // 8. Macro Water-Air Lens Bubbles (Crisp Dark TIR Rim + HDR Specular Glint!)
+    // =========================================================================
+    const MAX_BUBBLES = 340;
+    const bubbleGeo = new THREE.SphereGeometry(1, 14, 10);
+    const bubbleMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      vertexShader: /* glsl */ `
+        varying vec3 vNormalW;
+        varying vec3 vWorldPos;
+        void main() {
+          vec4 wp = modelMatrix * instanceMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          mat3 nm = mat3(modelMatrix) * mat3(instanceMatrix);
+          vNormalW = normalize(nm * normal);
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        varying vec3 vNormalW;
+        varying vec3 vWorldPos;
+        ${GLSL_SRGB_HELPER}
+
+        void main() {
+          vec3 V = normalize(cameraPosition - vWorldPos);
+          vec3 N = normalize(vNormalW);
+          float ndv = max(dot(N, V), 0.0);
+
+          // Real underwater air bubble (IOR 1.33 -> 1.00 = strong TIR dark slate ring!)
+          float tirRim = smoothstep(0.72, 0.18, ndv);
+          vec3 L = normalize(vec3(-0.62, 0.74, 0.55));
+          vec3 H = normalize(L + V);
+          float glint1 = pow(max(dot(N, H), 0.0), 42.0);
+          // Secondary bottom-right internal bounce glint
+          vec3 H2 = normalize(normalize(vec3(0.55, -0.65, 0.52)) + V);
+          float glint2 = pow(max(dot(N, H2), 0.0), 28.0) * 0.45;
+
+          vec3 col = mix(srgb(0.92, 0.95, 0.96), srgb(0.20, 0.26, 0.29), tirRim * 0.92);
+          col += vec3(1.55, 1.52, 1.46) * (glint1 + glint2);
+
+          float alpha = clamp(0.12 + tirRim * 0.78 + glint1 * 0.95, 0.0, 0.96);
+          gl_FragColor = vec4(col, alpha);
+        }
+      `
+    });
+
+    const bubbleInstanced = new THREE.InstancedMesh(bubbleGeo, bubbleMat, MAX_BUBBLES);
+    bubbleInstanced.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    bubbleInstanced.renderOrder = 3;
+    tankGroup.add(bubbleInstanced);
+
+    const bubbles = [];
+    const dummyObj = new THREE.Object3D();
+    for (let i = 0; i < MAX_BUBBLES; i++) {
+      bubbles.push({
+        active: false,
+        clinging: false,
+        pos: new THREE.Vector3(0, -99, 0),
+        vel: new THREE.Vector3(),
+        radius: 0.03,
+        phase: Math.random() * Math.PI * 2,
+        age: 0
+      });
+      dummyObj.position.set(0, -99, 0);
+      dummyObj.scale.setScalar(0.0001);
+      dummyObj.updateMatrix();
+      bubbleInstanced.setMatrixAt(i, dummyObj.matrix);
+    }
+
+    function spawnBubble(nozzleX, speedBoost = 1.0, ambient = false, customY = null, clinging = false) {
+      for (let i = 0; i < MAX_BUBBLES; i++) {
+        const b = bubbles[i];
+        if (!b.active) {
+          b.active = true;
+          b.clinging = clinging;
+          b.age = 0;
+          b.radius = clinging
+            ? 0.018 + Math.random() * 0.032
+            : ambient
+              ? 0.018 + Math.random() * 0.034
+              : 0.022 + Math.random() * 0.046;
+          b.pos.set(
+            nozzleX + (Math.random() - 0.5) * (clinging ? 0.48 : 0.24),
+            customY !== null ? customY : (-HALF_TH + 0.08 + Math.random() * 0.08),
+            (Math.random() - 0.5) * 0.24
+          );
+          const upSpd = clinging ? 0.0 : ambient ? 1.05 + Math.random() * 0.90 : (2.4 + Math.random() * 2.1) * speedBoost;
+          b.vel.set((Math.random() - 0.5) * 0.45, upSpd, (Math.random() - 0.5) * 0.30);
+          b.phase = Math.random() * Math.PI * 2;
+          return;
+        }
+      }
+    }
+
+    // Seed signature central S-curve bubble stream rising from check-valve nozzle to meniscus cluster!
+    for (let k = 0; k < 64; k++) {
+      const frac = k / 64;
+      const y = -HALF_TH + 0.10 + frac * (WATER_REST_LOCAL_Y + HALF_TH - 0.14);
+      const curveX = -0.14 + frac * 0.34 + Math.sin(frac * 4.8) * 0.09;
+      spawnBubble(curveX, 0.95, true, y, false);
+    }
+    for (let m = 0; m < 28; m++) {
+      spawnBubble(0.18, 0.0, true, WATER_REST_LOCAL_Y, true);
+    }
+
+    // =========================================================================
+    // 9. Pass-3 Liquid Water Volume + Sculpted 3D S-Curve Meniscus Ribbon!
+    //    Samples `tankSceneRT` at full crispness so submerged rings, pegs &
+    //    bubbles refract cleanly through crystal water!
+    // =========================================================================
+    const MENISCUS_NX = 88;
+    const MENISCUS_NZ = 28;
+
+    // 9A. Submerged Water Body Quad (`y < surfY`, samples `tankSceneRT` at alpha = 1.0!)
+    const waterBodyGeo = new THREE.PlaneGeometry(TANK_W, 1.0, MENISCUS_NX, 1);
+    const waterBodyMat = new THREE.ShaderMaterial({
+      transparent: false,
+      depthWrite: false,
+      uniforms: {
+        uTime: { value: 0 },
+        uSceneTex: shellSharedUniforms.uSceneTex,
+        uResolution: shellSharedUniforms.uResolution
+      },
+      vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        varying vec3 vLocal;
+        void main() {
+          vUv = uv;
+          vLocal = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform float uTime;
+        uniform sampler2D uSceneTex;
+        uniform vec2 uResolution;
+        varying vec2 vUv;
+        varying vec3 vLocal;
+        ${GLSL_SRGB_HELPER}
+
+        void main() {
+          vec2 screenUV = gl_FragCoord.xy / uResolution;
+
+          // Subtle IOR 1.333 underwater wave magnification & upward meniscus bend near top!
+          float nearSurface = smoothstep(0.86, 1.0, vUv.y);
+          vec2 waveOffs = vec2(
+            sin(vLocal.x * 4.8 + uTime * 2.2) * 0.0016,
+            cos(vLocal.x * 4.0 - uTime * 1.9) * 0.0016 - nearSurface * 0.009
+          );
+
+          vec3 bg = vec3(
+            texture2D(uSceneTex, clamp(screenUV + waveOffs * 0.92, 0.002, 0.998)).r,
+            texture2D(uSceneTex, clamp(screenUV + waveOffs * 1.00, 0.002, 0.998)).g,
+            texture2D(uSceneTex, clamp(screenUV + waveOffs * 1.08, 0.002, 0.998)).b
+          );
+
+          // Exact subtle cool crystal water transmission (#DBE0DA wet vs #E7DFD2 dry air above!)
+          vec3 col = bg * vec3(0.935, 0.972, 0.975);
+
+          // Crisp dark-slate underside meniscus shadow band right beneath the front contact line!
+          float meniscusShadow = exp(-pow((vUv.y - 0.985) * 48.0, 2.0));
+          col = mix(col, srgb(0.20, 0.26, 0.28), meniscusShadow * 0.52);
+
+          // Subtle liquid-wall capillary edge darkening along left, right & bottom tank walls
+          float sideCap = smoothstep(0.465, 0.50, abs(vUv.x - 0.5));
+          float botCap  = 1.0 - smoothstep(0.0, 0.032, vUv.y);
+          col = mix(col, srgb(0.45, 0.58, 0.63), max(sideCap, botCap) * 0.32);
+
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `
+    });
+
+    const waterBodyMesh = new THREE.Mesh(waterBodyGeo, waterBodyMat);
+    waterBodyMesh.position.z = HALF_TD - 0.005;
+    waterBodyMesh.renderOrder = 6;
+    tankGroup.add(waterBodyMesh);
+    pass3OnlyMeshes.push(waterBodyMesh);
+
+    // 9B. Thick, Glossy 3D S-Curve Air-Water Meniscus Sheet (`z = -HALF_TD..+HALF_TD`)!
+    const meniscusGeo = new THREE.PlaneGeometry(TANK_W, TANK_D, MENISCUS_NX, MENISCUS_NZ);
+    meniscusGeo.rotateX(-Math.PI * 0.5);
+
+    const meniscusMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      uniforms: {
+        uTime: { value: 0 },
+        uSceneTex: shellSharedUniforms.uSceneTex,
+        uResolution: shellSharedUniforms.uResolution
+      },
+      vertexShader: /* glsl */ `
+        varying vec3 vNormalW;
+        varying vec3 vWorldPos;
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorldPos = wp.xyz;
+          vNormalW = normalize(mat3(modelMatrix) * normal);
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform float uTime;
+        uniform sampler2D uSceneTex;
+        uniform vec2 uResolution;
+        varying vec3 vNormalW;
+        varying vec3 vWorldPos;
+        varying vec2 vUv;
+        ${GLSL_SRGB_HELPER}
+
+        void main() {
+          vec2 screenUV = gl_FragCoord.xy / uResolution;
+          vec3 V = normalize(cameraPosition - vWorldPos);
+          vec3 N = normalize(vNormalW);
+          if (!gl_FrontFacing) N = -N;
+
+          vec3 viewN = normalize((viewMatrix * vec4(N, 0.0)).xyz);
+          float ndv = abs(dot(N, V));
+          float fresnel = pow(1.0 - ndv, 1.8);
+
+          // Strong liquid-air Snell refraction + dispersion across the 3D S-wave sheet!
+          vec3 refr = vec3(
+            texture2D(uSceneTex, clamp(screenUV - viewN.xy * 0.026, 0.002, 0.998)).r,
+            texture2D(uSceneTex, clamp(screenUV - viewN.xy * 0.032, 0.002, 0.998)).g,
+            texture2D(uSceneTex, clamp(screenUV - viewN.xy * 0.039, 0.002, 0.998)).b
+          );
+
+          // Front & rear acrylic wetting contact lines (#2B3029 dark charcoal TIR + gleaming #F7FDF9 silver lip!)
+          float zAbs = abs(vUv.y - 0.5) * 2.0;
+          float frontEdge = smoothstep(0.72, 0.96, vUv.y);
+          float backEdge  = smoothstep(0.28, 0.04, vUv.y);
+          float darkTIRBand = exp(-pow((zAbs - 0.80) * 7.5, 2.0));
+          float silverLip   = smoothstep(0.86, 1.0, zAbs);
+
+          // Internal concentric liquid ripple striations across the meniscus ribbon (visible on right crest in reference!)
+          float rippleStripes = sin(vUv.y * 22.0 + sin(vUv.x * 8.0 + uTime * 2.5) * 1.5);
+          float stripeDark = smoothstep(0.3, 0.95, rippleStripes) * 0.22;
+
+          vec3 L1 = normalize(vec3(-0.48, 0.82, 0.52));
+          vec3 H1 = normalize(L1 + V);
+          float specCrest = pow(max(dot(N, H1), 0.0), 64.0);
+          float specPin   = pow(max(dot(N, H1), 0.0), 220.0);
+
+          vec3 col = mix(refr * vec3(0.82, 0.90, 0.92), srgb(0.96, 0.99, 0.98), fresnel * 0.68 + silverLip * 0.82);
+          col = mix(col, srgb(0.17, 0.21, 0.20), clamp(darkTIRBand * 0.88 + stripeDark + (frontEdge + backEdge) * 0.25, 0.0, 0.92));
+          col += vec3(1.45, 1.48, 1.44) * (specCrest * 0.85 + specPin * 1.35);
+
+          float alpha = clamp(0.55 + fresnel * 0.38 + darkTIRBand * 0.45 + silverLip * 0.45 + specCrest * 0.65, 0.0, 0.98);
+          gl_FragColor = vec4(col, alpha);
+        }
+      `
+    });
+
+    const meniscusMesh = new THREE.Mesh(meniscusGeo, meniscusMat);
+    meniscusMesh.renderOrder = 7;
+    tankGroup.add(meniscusMesh);
+    pass3OnlyMeshes.push(meniscusMesh);
+
+    // 9C. Whisper-subtle front acrylic window studio softbox reflection
+    const frontWindowSheen = new THREE.Mesh(
+      new THREE.ShapeGeometry(makeRoundedRectShape(TANK_W, TANK_H, TANK_R, 0, 0), 24),
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        vertexShader: /* glsl */ `
+          varying vec2 vLocal;
+          varying vec3 vWorldPos;
+          varying vec3 vNormalW;
+          void main() {
+            vLocal = position.xy;
+            vec4 wp = modelMatrix * vec4(position, 1.0);
+            vWorldPos = wp.xyz;
+            vNormalW = normalize(mat3(modelMatrix) * normal);
+            gl_Position = projectionMatrix * viewMatrix * wp;
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          varying vec2 vLocal;
+          varying vec3 vWorldPos;
+          varying vec3 vNormalW;
+          void main() {
+            vec3 V = normalize(cameraPosition - vWorldPos);
+            vec3 N = normalize(vNormalW);
+            float fres = pow(1.0 - max(dot(N, V), 0.0), 4.0);
+            float diagGlint = exp(-pow((vLocal.x * 0.52 + vLocal.y * 0.42 - 0.68) * 1.55, 2.0));
+            float alpha = clamp(0.010 + fres * 0.11 + diagGlint * 0.035, 0.0, 0.18);
+            gl_FragColor = vec4(vec3(1.05, 1.03, 0.99), alpha);
+          }
+        `
+      })
+    );
+    frontWindowSheen.position.z = HALF_TD + 0.04;
+    frontWindowSheen.renderOrder = 10;
+    tankGroup.add(frontWindowSheen);
+    pass3OnlyMeshes.push(frontWindowSheen);
+
+    function getWaterSurfaceY(x, z, t) {
+      const nx = x / HALF_TW;
+      const nz = z / HALF_TD;
+      // Sculptural 3D S-curve liquid wave crest + Z-tilt roll on right crest so camera sees full 3D liquid ribbon!
+      const sWave =
+        Math.sin(x * 1.65 - 0.55 + t * 2.8) * (state.rippleAmp * 4.4) +
+        Math.cos(x * 3.4 - t * 4.1 + z * 2.2) * (state.rippleAmp * 0.90);
+
+      // Tilt the right wave crest slightly forward/down toward camera so its glossy 3D upper ribbon gleams!
+      const ribbonRollZ = -(0.12 + 0.14 * Math.sin(x * 1.35 + 0.3)) * z;
+
+      const capX = Math.pow(Math.min(1, Math.abs(nx)), 4.2) * 0.13;
+      const capZ = Math.pow(Math.min(1, Math.abs(nz)), 3.6) * 0.072;
+
+      const rawY = WATER_REST_LOCAL_Y + state.sloshX * x + state.sloshZ * z + ribbonRollZ + sWave + capX + capZ;
+      return THREE.MathUtils.clamp(rawY, -HALF_TH + 0.35, HALF_TH - 0.08);
+    }
+
+    function updateWaterMeshes(t) {
+      const posAttr = meniscusGeo.attributes.position;
+      for (let iz = 0; iz <= MENISCUS_NZ; iz++) {
+        const z = -HALF_TD + (iz / MENISCUS_NZ) * TANK_D;
+        for (let ix = 0; ix <= MENISCUS_NX; ix++) {
+          const idx = iz * (MENISCUS_NX + 1) + ix;
+          const x = -HALF_TW + (ix / MENISCUS_NX) * TANK_W;
+          posAttr.setXYZ(idx, x, getWaterSurfaceY(x, z, t), z);
+        }
+      }
+      posAttr.needsUpdate = true;
+      meniscusGeo.computeVertexNormals();
+
+      const bodyAttr = waterBodyGeo.attributes.position;
+      for (let ix = 0; ix <= MENISCUS_NX; ix++) {
+        const x = -HALF_TW + (ix / MENISCUS_NX) * TANK_W;
+        const frontSurfY = getWaterSurfaceY(x, HALF_TD * 0.96, t);
+        bodyAttr.setXYZ(ix, x, frontSurfY, 0);
+        bodyAttr.setXYZ(ix + (MENISCUS_NX + 1), x, -HALF_TH, 0);
+      }
+      bodyAttr.needsUpdate = true;
+    }
+
+    // =========================================================================
+    // 10. Ring Layout, Sub-Stepped Hydrodynamics & Torus-Peg Collisions
+    // =========================================================================
+    let userInteractedWithGame = false;
+
+    function resetRings(initialShowcase = false) {
+      state.allWinShown = false;
+      document.getElementById('win-banner').classList.remove('visible');
+
+      // Exact photogenic editorial ring composition of the reference study!
+      const showcase = [
+        { x: -1.28, y: -0.56, z:  0.03, rx:  0.10, ry:  0.15, rz: 0.2 }, // Coral Red (Upper-Left)
+        { x: -1.32, y: -1.36, z: -0.02, rx: -0.08, ry: -0.14, rz: 1.1 }, // Marigold Yellow (Lower-Left)
+        { x:  0.22, y: -1.02, z:  0.04, rx:  0.12, ry: -0.16, rz: 2.3 }, // Electric Lime (Center-Right)
+        { x:  1.26, y: -0.26, z:  0.02, rx: -0.11, ry:  0.16, rz: 0.7 }, // Warm Coral (Mid-Right)
+        { x:  1.24, y: -1.16, z: -0.02, rx:  0.13, ry: -0.12, rz: 1.8 }  // Butterscotch Amber (Lower-Right)
+      ];
+
+      for (let i = 0; i < RING_COUNT; i++) {
+        const r = rings[i];
+        r.vel.set(0, 0, 0);
+        r.angVel.set((Math.random() - 0.5) * 0.35, (Math.random() - 0.5) * 0.35, (Math.random() - 0.5) * 0.45);
+        r.hookedPeg = 0;
+
+        if (initialShowcase && i < showcase.length) {
+          const s = showcase[i];
+          r.pos.set(s.x, s.y, s.z);
+          r.quat.setFromEuler(new THREE.Euler(s.rx, s.ry, s.rz));
+        } else {
+          const lane = (i - (RING_COUNT - 1) * 0.5) / RING_COUNT;
+          r.pos.set(
+            lane * (TANK_W - 1.1) + (Math.random() - 0.5) * 0.18,
+            -HALF_TH + 0.46 + (i % 3) * 0.36,
+            (Math.random() - 0.5) * 0.10
+          );
+          r.quat.setFromEuler(new THREE.Euler(
+            (Math.random() - 0.5) * 0.4,
+            (Math.random() - 0.5) * 0.3,
+            Math.random() * Math.PI * 2
+          ));
+        }
+        r.mesh.position.copy(r.pos);
+        r.mesh.quaternion.copy(r.quat);
+      }
+
+      if (initialShowcase) {
+        state.hookedCount = 0;
+        state.score = 30; // Editorial initial readout matching reference card; updates live on play!
+      } else {
+        state.hookedCount = 0;
+        state.score = 0;
+      }
+      updateScoreDisplay(false);
+    }
+
+    const tmpWorldDown = new THREE.Vector3(0, -1, 0);
+    const tmpLocalGravity = new THREE.Vector3();
+    const tmpInvQuat = new THREE.Quaternion();
+    const tmpRingNormal = new THREE.Vector3();
+    const tmpD = new THREE.Vector3();
+    const tmpPlane = new THREE.Vector3();
+    const tmpClosestCircle = new THREE.Vector3();
+    const tmpPush = new THREE.Vector3();
+    const tmpTorqueAxis = new THREE.Vector3();
+    const tmpDeltaQuat = new THREE.Quaternion();
+    const tmpFluidVel = new THREE.Vector3();
+
+    function sampleJetFlow(x, y, z, localUpVec, outVel) {
+      outVel.set(0, 0, 0);
+      const jf = state.jetForce;
+      const jets = [];
+      if (state.pumpLeft || state.pumpLeftPos > 0.08) {
+        jets.push({ nx: -0.72, dir: 1, power: jf * (state.pumpLeft ? 1.0 : state.pumpLeftPos) });
+      }
+      if (state.pumpRight || state.pumpRightPos > 0.08) {
+        jets.push({ nx: 0.72, dir: -1, power: jf * (state.pumpRight ? 1.0 : state.pumpRightPos) });
+      }
+
+      for (const jet of jets) {
+        const dx = x - jet.nx;
+        const hAbove = Math.max(0, y - (-HALF_TH + 0.08));
+        const sigma = 0.44 + hAbove * 0.15;
+        const plume = Math.exp(-(dx * dx + z * z * 1.4) / (2 * sigma * sigma));
+        const vertDecay = Math.exp(-hAbove * 0.19);
+
+        outVel.y += plume * vertDecay * 5.9 * jet.power;
+        outVel.x += localUpVec.x * plume * 1.8 * jet.power;
+
+        const nearTop = THREE.MathUtils.smoothstep(y, -0.35, 1.15);
+        outVel.x += jet.dir * nearTop * (0.95 + plume * 1.35) * jet.power;
+
+        const returnSide = THREE.MathUtils.smoothstep(dx * jet.dir, 0.35, 1.85);
+        outVel.y -= returnSide * 1.15 * jet.power;
+        outVel.z += Math.sin(y * 2.6 + state.time * 5.0 + jet.nx * 3.0) * 0.30 * jet.power;
+      }
+      return outVel;
+    }
+
+    function stepPhysics(dt) {
+      const targetLeft = state.pumpLeft ? 1.0 : 0.0;
+      const targetRight = state.pumpRight ? 1.0 : 0.0;
+      state.pumpLeftPos += (targetLeft - state.pumpLeftPos) * Math.min(1, dt * 22);
+      state.pumpRightPos += (targetRight - state.pumpRightPos) * Math.min(1, dt * 22);
+
+      leftPump.btnGroup.position.z = BODY_D * 0.49 - state.pumpLeftPos * 0.11;
+      leftPump.btnGroup.scale.set(1 + state.pumpLeftPos * 0.03, 1 + state.pumpLeftPos * 0.03, 1 - state.pumpLeftPos * 0.18);
+      rightPump.btnGroup.position.z = BODY_D * 0.49 - state.pumpRightPos * 0.11;
+      rightPump.btnGroup.scale.set(1 + state.pumpRightPos * 0.03, 1 + state.pumpRightPos * 0.03, 1 - state.pumpRightPos * 0.18);
+
+      const baseX = state.studioPose ? -0.10 : -0.02;
+      const baseY = state.studioPose ? -0.34 : 0.0;
+      const baseZ = state.studioPose ? -0.34 : 0.0;
+
+      const buttonTorqueZ = (state.pumpLeftPos - state.pumpRightPos) * 0.010;
+      const buttonTorqueX = -(state.pumpLeftPos + state.pumpRightPos) * 0.006;
+
+      const goalX = baseX + state.userTiltX + buttonTorqueX;
+      const goalY = baseY + state.userTiltZ * -0.15;
+      const goalZ = baseZ + state.userTiltZ + buttonTorqueZ;
+
+      const prevTiltX = state.tiltX;
+      const prevTiltZ = state.tiltZ;
+
+      const kSpring = 46.0;
+      const kDamp = 9.2;
+      state.velTiltX += ((goalX - state.tiltX) * kSpring - state.velTiltX * kDamp) * dt;
+      state.velTiltY += ((goalY - state.tiltY) * kSpring - state.velTiltY * kDamp) * dt;
+      state.velTiltZ += ((goalZ - state.tiltZ) * kSpring - state.velTiltZ * kDamp) * dt;
+
+      state.tiltX += state.velTiltX * dt;
+      state.tiltY += state.velTiltY * dt;
+      state.tiltZ += state.velTiltZ * dt;
+
+      const hoverY = 0.18 + Math.sin(state.time * 1.3) * 0.03;
+      deviceGroup.position.set(-0.08, hoverY, 0);
+      deviceGroup.rotation.set(state.tiltX, state.tiltY, state.tiltZ, 'YXZ');
+      deviceGroup.updateMatrixWorld();
+
+      tmpInvQuat.copy(deviceGroup.quaternion).invert();
+      tmpLocalGravity.copy(tmpWorldDown).applyQuaternion(tmpInvQuat).normalize();
+      const localUp = tmpLocalGravity.clone().negate();
+
+      // World-gravity-leveled water meniscus slosh
+      const eqSlopeX = tmpLocalGravity.x / Math.max(0.38, -tmpLocalGravity.y);
+      const eqSlopeZ = tmpLocalGravity.z / Math.max(0.38, -tmpLocalGravity.y);
+      const tiltAccelZ = (state.tiltZ - prevTiltZ) / Math.max(0.001, dt);
+      const tiltAccelX = (state.tiltX - prevTiltX) / Math.max(0.001, dt);
+
+      state.sloshVelX += ((eqSlopeX - state.sloshX) * 28.0 + tiltAccelZ * 0.45 - state.sloshVelX * 3.2) * dt;
+      state.sloshVelZ += ((eqSlopeZ - state.sloshZ) * 28.0 - tiltAccelX * 0.45 - state.sloshVelZ * 3.2) * dt;
+      state.sloshX = THREE.MathUtils.clamp(state.sloshX + state.sloshVelX * dt, -0.50, 0.50);
+      state.sloshZ = THREE.MathUtils.clamp(state.sloshZ + state.sloshVelZ * dt, -0.42, 0.42);
+
+      const jetActivity = (state.pumpLeft ? 1 : 0) + (state.pumpRight ? 1 : 0) + Math.abs(state.sloshVelX) * 0.35;
+      const targetRipple = 0.022 + Math.min(0.048, jetActivity * 0.022 * state.jetForce);
+      state.rippleAmp += (targetRipple - state.rippleAmp) * Math.min(1, dt * 6.0);
+
+      // Bubbles
+      if (state.pumpLeft) {
+        userInteractedWithGame = true;
+        const count = Math.ceil(2.8 * state.jetForce);
+        for (let c = 0; c < count; c++) spawnBubble(-0.68, state.jetForce, false);
+        audio.playBubbleGrain(state.jetForce);
+      }
+      if (state.pumpRight) {
+        userInteractedWithGame = true;
+        const count = Math.ceil(2.8 * state.jetForce);
+        for (let c = 0; c < count; c++) spawnBubble(0.68, state.jetForce, false);
+        audio.playBubbleGrain(state.jetForce);
+      }
+      if (Math.random() < dt * 22.0) {
+        spawnBubble(-0.08, 0.95, true);
+      }
+
+      for (let i = 0; i < MAX_BUBBLES; i++) {
+        const b = bubbles[i];
+        if (!b.active) continue;
+        b.age += dt;
+
+        const surfY = getWaterSurfaceY(b.pos.x, b.pos.z, state.time);
+        if (b.clinging) {
+          b.pos.x += Math.sin(state.time * 1.4 + b.phase) * 0.04 * dt;
+          b.pos.y = surfY - b.radius * 1.35 - Math.abs(Math.sin(b.phase)) * 0.07;
+          dummyObj.position.copy(b.pos);
+          dummyObj.scale.setScalar(b.radius);
+          dummyObj.updateMatrix();
+          bubbleInstanced.setMatrixAt(i, dummyObj.matrix);
+          continue;
+        }
+
+        b.vel.addScaledVector(localUp, 4.6 * dt);
+        b.vel.x += Math.sin(state.time * 8.5 + b.phase) * 1.15 * dt;
+        b.vel.z += Math.cos(state.time * 7.8 + b.phase) * 0.75 * dt;
+        b.vel.multiplyScalar(Math.exp(-2.1 * dt));
+
+        b.pos.addScaledVector(b.vel, dt);
+        b.pos.x = THREE.MathUtils.clamp(b.pos.x, -HALF_TW + 0.10, HALF_TW - 0.10);
+        b.pos.z = THREE.MathUtils.clamp(b.pos.z, -HALF_TD + 0.08, HALF_TD - 0.08);
+
+        if (b.pos.y >= surfY - b.radius * 0.4 || b.age > 3.8) {
+          b.active = false;
+          dummyObj.position.set(0, -99, 0);
+          dummyObj.scale.setScalar(0.0001);
+        } else {
+          dummyObj.position.copy(b.pos);
+          const sq = 1.0 + Math.min(0.16, b.vel.length() * 0.03);
+          dummyObj.scale.set(b.radius * sq, b.radius / sq, b.radius * sq);
+        }
+        dummyObj.updateMatrix();
+        bubbleInstanced.setMatrixAt(i, dummyObj.matrix);
+      }
+      bubbleInstanced.instanceMatrix.needsUpdate = true;
+
+      // Sub-stepped Ring Physics
+      // Before user presses a pump/shake/drag, gently buoyantly suspend the 5 showcase rings in place!
+      if (!userInteractedWithGame) {
+        const baseShowcaseY = [-0.56, -1.36, -1.02, -0.26, -1.16];
+        const baseShowcaseX = [-1.28, -1.32,  0.22,  1.26,  1.24];
+        for (let i = 0; i < RING_COUNT; i++) {
+          const r = rings[i];
+          r.pos.x = baseShowcaseX[i] + Math.sin(state.time * 1.15 + i * 1.7) * 0.045;
+          r.pos.y = baseShowcaseY[i] + Math.cos(state.time * 1.40 + i * 1.3) * 0.055;
+          r.mesh.position.copy(r.pos);
+          tmpDeltaQuat.setFromAxisAngle(new THREE.Vector3(0, 0, 1), 0.12 * dt * (i % 2 === 0 ? 1 : -1));
+          r.quat.multiply(tmpDeltaQuat).normalize();
+          r.mesh.quaternion.copy(r.quat);
+          ringShadowPosArr[i].copy(r.pos);
+          ringShadowNormArr[i].set(0, 0, 1).applyQuaternion(r.quat).normalize();
+        }
+      } else {
+        const SUBSTEPS = 4;
+        const subDt = dt / SUBSTEPS;
+        const sinkGravity = 8.8 * (1.03 - state.buoyancy);
+        const shakeImpulseX = -tiltAccelZ * 1.65;
+        const shakeImpulseY = Math.abs(tiltAccelZ) * 0.55 + Math.abs(tiltAccelX) * 0.55;
+        const shakeImpulseZ = tiltAccelX * 1.25;
+
+        for (let step = 0; step < SUBSTEPS; step++) {
+          for (let i = 0; i < RING_COUNT; i++) {
+            const r = rings[i];
+            const surfY = getWaterSurfaceY(r.pos.x, r.pos.z, state.time);
+            const submerged = r.pos.y < surfY;
+
+            if (submerged) {
+              r.vel.addScaledVector(tmpLocalGravity, sinkGravity * subDt);
+              sampleJetFlow(r.pos.x, r.pos.y, r.pos.z, localUp, tmpFluidVel);
+              if (r.hookedPeg !== 0) {
+                tmpFluidVel.multiplyScalar(0.24);
+              }
+
+              const fluidDrag = 3.8;
+              r.vel.x += (tmpFluidVel.x - r.vel.x) * fluidDrag * subDt;
+              r.vel.y += (tmpFluidVel.y - r.vel.y) * fluidDrag * subDt;
+              r.vel.z += (tmpFluidVel.z - r.vel.z) * fluidDrag * subDt;
+
+              r.angVel.x += (tmpFluidVel.z * 0.7 + Math.sin(state.time * 2.8 + i) * 0.2) * subDt;
+              r.angVel.y += (tmpFluidVel.x * 0.4) * subDt;
+              r.angVel.z += (-tmpFluidVel.x * 0.95) * subDt;
+
+              if (r.hookedPeg === 0 && r.pos.y < PEG_TIP_Y - 0.08) {
+                tmpRingNormal.set(0, 0, 1).applyQuaternion(r.quat);
+                const faceAxis = tmpRingNormal.z >= 0 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 0, -1);
+                tmpTorqueAxis.crossVectors(tmpRingNormal, faceAxis);
+                r.angVel.addScaledVector(tmpTorqueAxis, 3.2 * subDt);
+              }
+            } else {
+              r.vel.addScaledVector(tmpLocalGravity, 11.5 * subDt);
+              r.vel.multiplyScalar(Math.exp(-0.8 * subDt));
+            }
+
+            r.vel.x += shakeImpulseX * subDt;
+            r.vel.y += shakeImpulseY * subDt;
+            r.vel.z += shakeImpulseZ * subDt;
+            r.angVel.multiplyScalar(Math.exp(-4.2 * subDt));
+
+            // Capture-cone alignment above peg tips
+            for (const sx of [-1, 1]) {
+              const px = sx * PEG_X;
+              const dx = px - r.pos.x;
+              const dy = r.pos.y - PEG_TIP_Y;
+              if (dy > -0.08 && dy < 0.50 && Math.abs(dx) < RING_MAJOR * 0.88 && Math.abs(r.pos.z) < 0.26 && r.vel.y < 0.9) {
+                tmpRingNormal.set(0, 0, 1).applyQuaternion(r.quat);
+                const targetAxis = tmpRingNormal.y >= 0
+                  ? new THREE.Vector3(0, 0.86, 0.50).normalize()
+                  : new THREE.Vector3(0, -0.86, -0.50).normalize();
+                tmpTorqueAxis.crossVectors(tmpRingNormal, targetAxis);
+                r.angVel.addScaledVector(tmpTorqueAxis, 10.5 * subDt);
+                r.vel.x += dx * 2.4 * subDt;
+                r.vel.z += -r.pos.z * 3.0 * subDt;
+              }
+            }
+
+            r.pos.addScaledVector(r.vel, subDt);
+
+            const angSpeed = r.angVel.length();
+            if (angSpeed > 0.0001) {
+              tmpTorqueAxis.copy(r.angVel).divideScalar(angSpeed);
+              tmpDeltaQuat.setFromAxisAngle(tmpTorqueAxis, angSpeed * subDt);
+              r.quat.premultiply(tmpDeltaQuat).normalize();
+            }
+
+            tmpRingNormal.set(0, 0, 1).applyQuaternion(r.quat).normalize();
+
+            // Exact 3D Torus vs Twin Pegs Collision
+            for (const sx of [-1, 1]) {
+              const px = sx * PEG_X;
+              if (Math.abs(r.pos.x - px) > RING_OUTER + PEG_RADIUS + 0.15) continue;
+              if (r.pos.y > PEG_TIP_Y + RING_OUTER + 0.15) continue;
+
+              const clampedY = THREE.MathUtils.clamp(r.pos.y, PEG_BASE_Y, PEG_TIP_Y);
+              const sampleYs = [
+                PEG_TIP_Y,
+                clampedY,
+                THREE.MathUtils.clamp(r.pos.y - 0.12, PEG_BASE_Y, PEG_TIP_Y),
+                THREE.MathUtils.clamp(r.pos.y + 0.12, PEG_BASE_Y, PEG_TIP_Y)
+              ];
+
+              for (let s = 0; s < sampleYs.length; s++) {
+                const qx = px, qy = sampleYs[s], qz = 0;
+                tmpD.set(qx - r.pos.x, qy - r.pos.y, qz - r.pos.z);
+                const axial = tmpD.dot(tmpRingNormal);
+                tmpPlane.copy(tmpD).addScaledVector(tmpRingNormal, -axial);
+
+                const planeLen = tmpPlane.length();
+                if (planeLen > 1e-5) {
+                  tmpClosestCircle.copy(r.pos).addScaledVector(tmpPlane, RING_MAJOR / planeLen);
+                } else {
+                  const perp = Math.abs(tmpRingNormal.x) < 0.9
+                    ? new THREE.Vector3(1, 0, 0).cross(tmpRingNormal).normalize()
+                    : new THREE.Vector3(0, 1, 0).cross(tmpRingNormal).normalize();
+                  tmpClosestCircle.copy(r.pos).addScaledVector(perp, RING_MAJOR);
+                }
+
+                tmpPush.set(tmpClosestCircle.x - qx, tmpClosestCircle.y - qy, tmpClosestCircle.z - qz);
+                const dist = tmpPush.length();
+                const minSep = RING_TUBE + PEG_RADIUS;
+
+                if (dist < minSep && dist > 1e-6) {
+                  const overlap = minSep - dist;
+                  tmpPush.divideScalar(dist);
+                  r.pos.addScaledVector(tmpPush, overlap);
+
+                  const relVn = r.vel.dot(tmpPush);
+                  if (relVn < 0) {
+                    if (Math.abs(relVn) > 0.85) audio.playPlasticTap(Math.abs(relVn));
+                    r.vel.addScaledVector(tmpPush, -relVn * 1.25);
+
+                    const lever = tmpClosestCircle.sub(r.pos);
+                    tmpTorqueAxis.crossVectors(lever, tmpPush);
+                    r.angVel.addScaledVector(tmpTorqueAxis, -relVn * 3.0);
+                  }
+                }
+              }
+
+              if (r.pos.y < PEG_BASE_Y + 0.10 + RING_TUBE && Math.hypot(r.pos.x - px, r.pos.z) < RING_MAJOR) {
+                r.pos.y = PEG_BASE_Y + 0.10 + RING_TUBE;
+                if (r.vel.y < 0) r.vel.y *= -0.18;
+              }
+            }
+
+            // Tank Inner Wall Constraints
+            const nx = tmpRingNormal.x, ny = tmpRingNormal.y, nz = tmpRingNormal.z;
+            const extX = RING_MAJOR * Math.sqrt(Math.max(0, 1 - nx * nx)) + RING_TUBE;
+            const extY = RING_MAJOR * Math.sqrt(Math.max(0, 1 - ny * ny)) + RING_TUBE;
+            const extZ = RING_MAJOR * Math.sqrt(Math.max(0, 1 - nz * nz)) + RING_TUBE;
+
+            const wallBounce = 0.30;
+            if (r.pos.x < -HALF_TW + extX) {
+              r.pos.x = -HALF_TW + extX;
+              if (r.vel.x < 0) {
+                if (r.vel.x < -1.1) audio.playPlasticTap(-r.vel.x);
+                r.vel.x *= -wallBounce;
+              }
+            } else if (r.pos.x > HALF_TW - extX) {
+              r.pos.x = HALF_TW - extX;
+              if (r.vel.x > 0) {
+                if (r.vel.x > 1.1) audio.playPlasticTap(r.vel.x);
+                r.vel.x *= -wallBounce;
+              }
+            }
+
+            if (r.pos.y < -HALF_TH + extY + 0.03) {
+              r.pos.y = -HALF_TH + extY + 0.03;
+              if (r.vel.y < 0) r.vel.y *= -0.24;
+              r.vel.x *= Math.exp(-2.0 * subDt);
+            } else if (r.pos.y > HALF_TH - extY - 0.04) {
+              r.pos.y = HALF_TH - extY - 0.04;
+              if (r.vel.y > 0) r.vel.y *= -wallBounce;
+            }
+
+            if (r.pos.z < -HALF_TD + extZ) {
+              r.pos.z = -HALF_TD + extZ;
+              if (r.vel.z < 0) r.vel.z *= -0.22;
+            } else if (r.pos.z > HALF_TD - extZ) {
+              r.pos.z = HALF_TD - extZ;
+              if (r.vel.z > 0) r.vel.z *= -0.22;
+            }
+          }
+
+          // Ring-to-Ring Collision
+          for (let i = 0; i < RING_COUNT; i++) {
+            for (let j = i + 1; j < RING_COUNT; j++) {
+              const a = rings[i];
+              const b = rings[j];
+              tmpPush.subVectors(b.pos, a.pos);
+              const d = tmpPush.length();
+
+              const samePeg =
+                (Math.abs(a.pos.x - PEG_X) < RING_MAJOR * 0.85 && Math.abs(b.pos.x - PEG_X) < RING_MAJOR * 0.85 && a.pos.y < PEG_TIP_Y && b.pos.y < PEG_TIP_Y) ||
+                (Math.abs(a.pos.x + PEG_X) < RING_MAJOR * 0.85 && Math.abs(b.pos.x + PEG_X) < RING_MAJOR * 0.85 && a.pos.y < PEG_TIP_Y && b.pos.y < PEG_TIP_Y);
+
+              const minDist = samePeg ? RING_TUBE * 2.15 : RING_OUTER * 1.55;
+              if (d < minDist && d > 1e-5) {
+                const overlap = (minDist - d) * 0.5;
+                tmpPush.divideScalar(d);
+                a.pos.addScaledVector(tmpPush, -overlap);
+                b.pos.addScaledVector(tmpPush, overlap);
+
+                const vn = (b.vel.x - a.vel.x) * tmpPush.x + (b.vel.y - a.vel.y) * tmpPush.y + (b.vel.z - a.vel.z) * tmpPush.z;
+                if (vn < 0) {
+                  const imp = -vn * 0.62;
+                  a.vel.addScaledVector(tmpPush, -imp);
+                  b.vel.addScaledVector(tmpPush, imp);
+                }
+              }
+            }
+          }
+        }
+
+        // Sync ring transforms, soft shadows & score
+        let hookedNow = 0;
+        for (let i = 0; i < RING_COUNT; i++) {
+          const r = rings[i];
+          r.mesh.position.copy(r.pos);
+          r.mesh.quaternion.copy(r.quat);
+          ringShadowPosArr[i].copy(r.pos);
+          tmpRingNormal.set(0, 0, 1).applyQuaternion(r.quat).normalize();
+          ringShadowNormArr[i].copy(tmpRingNormal);
+
+          let newHook = 0;
+          for (const sx of [-1, 1]) {
+            const px = sx * PEG_X;
+            if (r.pos.y < PEG_TIP_Y - 0.04 && r.pos.y >= PEG_BASE_Y) {
+              tmpD.set(px - r.pos.x, 0, -r.pos.z);
+              const axial = tmpD.dot(tmpRingNormal);
+              tmpPlane.copy(tmpD).addScaledVector(tmpRingNormal, -axial);
+              if (tmpPlane.length() < RING_MAJOR - RING_TUBE * 0.72 && Math.abs(tmpRingNormal.y) > 0.30) {
+                newHook = sx;
+                r.vel.x *= Math.exp(-6.0 * dt);
+                r.vel.z *= Math.exp(-6.0 * dt);
+                break;
+              }
+            }
+          }
+
+          if (newHook !== 0 && r.hookedPeg === 0) {
+            r.hookedPeg = newHook;
+            audio.playRingHooked(hookedNow + 1);
+          } else if (newHook === 0) {
+            r.hookedPeg = 0;
+          }
+          if (r.hookedPeg !== 0) hookedNow++;
+        }
+
+        if (hookedNow !== state.hookedCount) {
+          state.hookedCount = hookedNow;
+          state.score = hookedNow * 10;
+          updateScoreDisplay(true);
+        }
+      }
+
+      studioUniforms.uTime.value = state.time;
+      studioUniforms.uTilt.value.set(state.tiltX, state.tiltZ);
+      studioUniforms.uRipple.value = state.rippleAmp;
+      studioUniforms.uDevicePos.value.copy(deviceGroup.position);
+      meniscusMat.uniforms.uTime.value = state.time;
+      waterBodyMat.uniforms.uTime.value = state.time;
+    }
+
+    // =========================================================================
+    // 11. UI Bindings & Direct 3D Hardware Controls
+    // =========================================================================
+    const scoreValEl = document.getElementById('score-val');
+    const winBannerEl = document.getElementById('win-banner');
+
+    function updateScoreDisplay(animate = false) {
+      scoreValEl.textContent = String(state.score);
+      if (animate) {
+        scoreValEl.classList.remove('pop');
+        void scoreValEl.offsetWidth;
+        scoreValEl.classList.add('pop');
+        setTimeout(() => scoreValEl.classList.remove('pop'), 260);
+      }
+      if (userInteractedWithGame && state.hookedCount === RING_COUNT && !state.allWinShown) {
+        state.allWinShown = true;
+        winBannerEl.classList.add('visible');
+      } else if (state.hookedCount < RING_COUNT) {
+        winBannerEl.classList.remove('visible');
+      }
+    }
+
+    document.querySelectorAll('.swatch-item').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        audio.unlock();
+        audio.playPlasticTap(1.2);
+        const key = btn.dataset.shell;
+        const theme = SHELL_THEMES[key];
+        if (!theme) return;
+        state.shellKey = key;
+
+        document.querySelectorAll('.swatch-item').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        shellSharedUniforms.uSigma.value.copy(theme.sigma);
+        shellSharedUniforms.uDeepEdge.value.copy(theme.deepEdge);
+        shellSharedUniforms.uDarkGroove.value.copy(theme.darkGroove);
+        shellSharedUniforms.uIceRim.value.copy(theme.iceRim);
+        internalMoldMat.uniforms.uColor.value.copy(theme.ribCol);
+        internalMoldMat.uniforms.uDeep.value.copy(theme.deepEdge);
+        siliconeUniforms.uLitCol.value.copy(theme.siliconeLit);
+        siliconeUniforms.uShadeCol.value.copy(theme.siliconeShade);
+        studioUniforms.uCausticTint.value.copy(theme.causticTint);
+      });
+    });
+
+    const slJet = document.getElementById('sl-jet');
+    slJet.addEventListener('input', () => { state.jetForce = parseFloat(slJet.value); });
+
+    const slBuoyancy = document.getElementById('sl-buoyancy');
+    slBuoyancy.addEventListener('input', () => { state.buoyancy = parseFloat(slBuoyancy.value); });
+
+    const btnSound = document.getElementById('btn-sound');
+    btnSound.addEventListener('click', () => {
+      audio.unlock();
+      audio.enabled = !audio.enabled;
+      btnSound.textContent = `Sound: ${audio.enabled ? 'On' : 'Off'}`;
+    });
+
+    const uiLeftBtn = document.getElementById('ui-pump-left');
+    const uiRightBtn = document.getElementById('ui-pump-right');
+
+    function setPumpState(side, down) {
+      audio.unlock();
+      if (down && !userInteractedWithGame) {
+        userInteractedWithGame = true;
+        state.score = state.hookedCount * 10;
+        updateScoreDisplay(false);
+      }
+      if (side === 'left') {
+        if (state.pumpLeft !== down) {
+          state.pumpLeft = down;
+          uiLeftBtn.classList.toggle('pressed', down);
+          audio.playPumpPress(down);
+        }
+      } else {
+        if (state.pumpRight !== down) {
+          state.pumpRight = down;
+          uiRightBtn.classList.toggle('pressed', down);
+          audio.playPumpPress(down);
+        }
+      }
+    }
+
+    uiLeftBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); setPumpState('left', true); });
+    uiRightBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); setPumpState('right', true); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => {
+      uiLeftBtn.addEventListener(ev, () => setPumpState('left', false));
+      uiRightBtn.addEventListener(ev, () => setPumpState('right', false));
+    });
+
+    const btnPose = document.getElementById('btn-pose');
+    btnPose.addEventListener('click', () => {
+      audio.unlock();
+      audio.playPlasticTap(1.3);
+      state.studioPose = !state.studioPose;
+      btnPose.textContent = `Pose: ${state.studioPose ? 'Studio' : 'Upright'}`;
+    });
+
+    document.getElementById('btn-shake').addEventListener('click', () => {
+      audio.unlock();
+      if (!userInteractedWithGame) {
+        userInteractedWithGame = true;
+        state.score = 0;
+        updateScoreDisplay(false);
+      }
+      audio.playPumpPress(true);
+      state.velTiltZ += (Math.random() > 0.5 ? 1 : -1) * 5.8;
+      state.velTiltX += -3.6;
+      state.sloshVelX += (Math.random() - 0.5) * 4.5;
+      for (const r of rings) {
+        r.vel.y += 3.6 + Math.random() * 2.2;
+        r.vel.x += (Math.random() - 0.5) * 3.8;
+        r.angVel.set((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+      }
+      for (let i = 0; i < 22; i++) {
+        spawnBubble((Math.random() - 0.5) * 2.2, 1.25, false);
+      }
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      audio.unlock();
+      userInteractedWithGame = true;
+      audio.playPlasticTap(1.4);
+      camera.position.copy(INITIAL_CAM);
+      controls.target.copy(INITIAL_TARGET);
+      controls.update();
+      resetRings(false);
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.repeat) return;
+      if (e.code === 'KeyA' || e.code === 'ArrowLeft') setPumpState('left', true);
+      if (e.code === 'KeyD' || e.code === 'ArrowRight') setPumpState('right', true);
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setPumpState('left', true);
+        setPumpState('right', true);
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'KeyA' || e.code === 'ArrowLeft') setPumpState('left', false);
+      if (e.code === 'KeyD' || e.code === 'ArrowRight') setPumpState('right', false);
+      if (e.code === 'Space') {
+        setPumpState('left', false);
+        setPumpState('right', false);
+      }
+    });
+
+    const raycaster = new THREE.Raycaster();
+    const pointerNDC = new THREE.Vector2();
+    let active3DPump = null;
+    let draggingShell = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+
+    const shellHitTargets = [shellMesh, tankBezel, frontWindowSheen];
+    const buttonHitTargets = [...leftPump.btnGroup.children, ...rightPump.btnGroup.children];
+
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      audio.unlock();
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointerNDC, camera);
+
+      const btnHits = raycaster.intersectObjects(buttonHitTargets, false);
+      if (btnHits.length > 0) {
+        const side = btnHits[0].object.userData.pumpSide;
+        if (side) {
+          active3DPump = side;
+          controls.enabled = false;
+          setPumpState(side, true);
+          return;
+        }
+      }
+
+      const shellHits = raycaster.intersectObjects(shellHitTargets, false);
+      if (shellHits.length > 0 && e.button === 0) {
+        draggingShell = true;
+        controls.enabled = false;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        renderer.domElement.style.cursor = 'grabbing';
+      }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (draggingShell) {
+        const dx = (e.clientX - dragStartX) / Math.max(320, window.innerWidth);
+        const dy = (e.clientY - dragStartY) / Math.max(320, window.innerHeight);
+        if (Math.hypot(dx, dy) > 0.02 && !userInteractedWithGame) {
+          userInteractedWithGame = true;
+          state.score = state.hookedCount * 10;
+          updateScoreDisplay(false);
+        }
+        state.userTiltZ = THREE.MathUtils.clamp(-dx * 1.65, -0.72, 0.72);
+        state.userTiltX = THREE.MathUtils.clamp(dy * 1.35, -0.55, 0.55);
+        return;
+      }
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointerNDC, camera);
+      if (raycaster.intersectObjects(buttonHitTargets, false).length > 0) {
+        renderer.domElement.style.cursor = 'pointer';
+      } else if (raycaster.intersectObjects(shellHitTargets, false).length > 0) {
+        renderer.domElement.style.cursor = 'grab';
+      } else {
+        renderer.domElement.style.cursor = 'default';
+      }
+    });
+
+    function endPointerInteraction() {
+      if (active3DPump) {
+        setPumpState(active3DPump, false);
+        active3DPump = null;
+      }
+      if (draggingShell) {
+        draggingShell = false;
+        state.userTiltX = 0;
+        state.userTiltZ = 0;
+        renderer.domElement.style.cursor = 'default';
+      }
+      controls.enabled = true;
+    }
+
+    window.addEventListener('pointerup', endPointerInteraction);
+    window.addEventListener('pointercancel', endPointerInteraction);
+
+    window.addEventListener('resize', () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const curDpr = Math.min(window.devicePixelRatio || 1, 2);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setPixelRatio(curDpr);
+      renderer.setSize(w, h);
+      composer.setSize(w, h);
+      housingRT.setSize(Math.floor(w * curDpr), Math.floor(h * curDpr));
+      backdropRT.setSize(Math.floor(w * curDpr), Math.floor(h * curDpr));
+      tankSceneRT.setSize(Math.floor(w * curDpr), Math.floor(h * curDpr));
+      globalRes.set(w * curDpr, h * curDpr);
+    });
+
+    // =========================================================================
+    // 12. Multi-Stage Physical Optical Render Loop
+    // =========================================================================
+    resetRings(true);
+    stepPhysics(0.016);
+    updateWaterMeshes(0);
+
+    let lastTime = performance.now();
+    function animate(now) {
+      requestAnimationFrame(animate);
+      const rawDt = (now - lastTime) * 0.001;
+      lastTime = now;
+      const dt = Math.min(0.033, Math.max(0.001, rawDt));
+      state.time += dt;
+
+      stepPhysics(dt);
+      updateWaterMeshes(state.time);
+      controls.update();
+
+      // Stage 1A: Capture pure sunlit studio cyclorama + shadows + caustics into `backdropRT`
+      deviceGroup.visible = false;
+      renderer.setRenderTarget(backdropRT);
+      renderer.render(scene, camera);
+
+      // Stage 1B: Capture studio backdrop + internal shell ribs/bosses/valve (WITHOUT tank rings/bubbles) into `housingRT`
+      // so the outer Glacier polycarbonate shell refracts ONLY studio + internal ribs — zero ring ghosting on outer walls!
+      deviceGroup.visible = true;
+      tankGroup.visible = false;
+      for (let i = 0; i < pass3OnlyMeshes.length; i++) pass3OnlyMeshes[i].visible = false;
+      renderer.setRenderTarget(housingRT);
+      renderer.render(scene, camera);
+
+      // Stage 2: Capture internal shell features + tank contact shadows, standoffs, rings, glass pegs & bubbles into `tankSceneRT`
+      tankGroup.visible = true;
+      renderer.setRenderTarget(tankSceneRT);
+      renderer.render(scene, camera);
+      renderer.setRenderTarget(null);
+
+      // Stage 3: Full multi-bounce refraction (water, S-curve meniscus, clear tank bezel, Glacier polycarbonate shell, buttons) + Khronos PBR Neutral Grade!
+      for (let i = 0; i < pass3OnlyMeshes.length; i++) pass3OnlyMeshes[i].visible = true;
+      composer.render();
+    }
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
